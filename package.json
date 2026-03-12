@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "commit": "bash scripts/commit.sh",
+    "commit:only": "bash scripts/commit.sh --no-push"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

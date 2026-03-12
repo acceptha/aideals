@@ -1,36 +1,175 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# aideals — 패션 비교 플랫폼
 
-## Getting Started
+사용자가 의류 카테고리를 선택하면 셀럽/인플루언서 착용 사진을 탐색하고, 유사 상품을 브랜드·가격별로 비교한 뒤, 최저가 구매처까지 확인할 수 있는 모바일 우선(Mobile-First) 웹 애플리케이션.
 
-First, run the development server:
+```
+카테고리 선택 → 셀럽 스타일 탐색 → 유사 상품 비교 → 구매처 확인
+```
+
+---
+
+## 기술 스택
+
+| 영역 | 기술 |
+|------|------|
+| 프레임워크 | Next.js 14 (App Router) |
+| 언어 | TypeScript 5 |
+| 스타일링 | TailwindCSS 3 |
+| 상태관리 | Zustand |
+| ORM | Prisma 5 |
+| DB | PostgreSQL (Supabase) |
+| 캐시 | Redis (Upstash) |
+| 인증 | NextAuth.js |
+| 이미지 CDN | Cloudinary |
+| 배포 | Vercel |
+
+---
+
+## 시작하기
+
+### 1. 설치
+
+```bash
+npm install
+```
+
+### 2. 환경 변수
+
+`.env.example`을 `.env`로 복사하고 값을 채운다.
+
+```bash
+cp .env.example .env
+```
+
+### 3. DB 설정
+
+```bash
+npx prisma migrate dev --name init
+npx prisma db seed
+```
+
+### 4. 개발 서버
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+[http://localhost:3000](http://localhost:3000)에서 확인.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 자주 쓰는 명령어
 
-## Learn More
+```bash
+# 개발
+npm run dev                              # 개발 서버
+npm run build                            # 프로덕션 빌드
+npm start                                # 프로덕션 실행
 
-To learn more about Next.js, take a look at the following resources:
+# 커밋
+npm run commit                           # 스마트 커밋 (commit + push)
+npm run commit:only                      # 스마트 커밋 (commit만)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Prisma
+npx prisma migrate dev --name <설명>      # 마이그레이션
+npx prisma generate                       # 클라이언트 재생성
+npx prisma studio                         # DB GUI
+npx prisma db seed                        # 시드 데이터
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# 품질
+npm run lint                              # ESLint
+npx tsc --noEmit                          # 타입 체크
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 디렉토리 구조
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+aideals/
+├── prisma/
+│   └── schema.prisma              # 데이터 모델 정의
+├── public/
+│   ├── icons/                     # 카테고리 아이콘, PWA 아이콘
+│   └── manifest.json              # PWA 매니페스트
+├── scripts/
+│   └── commit.sh                  # 인터랙티브 스마트 커밋 스크립트
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx             # 루트 레이아웃
+│   │   ├── page.tsx               # 홈 — 카테고리 선택
+│   │   ├── styles/                # 셀럽 스타일 목록/상세
+│   │   ├── products/              # 상품 상세/구매처
+│   │   └── api/                   # API Routes
+│   ├── components/                # UI 컴포넌트
+│   ├── lib/                       # Prisma, Redis, 크롤러 등
+│   ├── stores/                    # Zustand 스토어
+│   ├── types/                     # 공유 타입 정의
+│   └── utils/                     # 순수 유틸 함수
+├── .env.example                   # 환경 변수 템플릿
+├── claude.md                      # Claude Code 가이드
+├── COMMIT_CONVENTION.md           # 커밋 컨벤션 상세
+└── package.json
+```
+
+---
+
+## 반응형 브레이크포인트
+
+| 이름 | 기준 | 용도 |
+|------|------|------|
+| 기본 (모바일) | < 768px | 모든 스타일의 기본값 |
+| `md` | ≥ 768px | 태블릿 |
+| `lg` | ≥ 1024px | 데스크톱 |
+| `xl` | ≥ 1280px | 대형 화면 |
+
+### 화면별 레이아웃
+
+- **카테고리**: 모바일 3열 그리드 → 데스크톱 사이드바 + 4열
+- **스타일 목록**: 모바일 2열 → 데스크톱 4열
+- **상품 비교**: 모바일 수직 리스트 → 데스크톱 3열 그리드
+- **구매처**: 모바일 풀너비 리스트 → 데스크톱 테이블
+
+---
+
+## 캐싱 전략
+
+| 대상 | 저장소 | TTL | 갱신 조건 |
+|------|--------|-----|-----------|
+| 카테고리 트리 | Redis | 24시간 | 관리자 수정 시 무효화 |
+| 셀럽 스타일 목록 | Redis | 6시간 | 신규 등록 시 무효화 |
+| 유사 상품 목록 | Redis | 6시간 | 상품 추가/삭제 시 무효화 |
+| 가격 정보 (PurchaseLink) | Redis | 1~3시간 | 크롤러 재수집 시 갱신 |
+| 정적 페이지 | Next.js ISR | 1시간 | revalidate 설정 |
+
+---
+
+## 개발 로드맵
+
+### Phase 1 — MVP (2주)
+- [ ] Next.js 프로젝트 초기 설정
+- [ ] Prisma 스키마 정의 및 Supabase 연동
+- [ ] 목(mock) 데이터 시드 작성
+- [ ] CategoryGrid + 홈 페이지
+- [ ] StyleCard + 스타일 목록 페이지
+- [ ] 반응형 레이아웃 완성
+
+### Phase 2 — 핵심 기능 (2주)
+- [ ] API Routes 구현
+- [ ] ProductCompareCard + 스타일 상세 페이지
+- [ ] PurchaseLinkList + 상품 상세 페이지
+- [ ] FilterBar + Zustand + URL 동기화
+- [ ] 통합 검색
+
+### Phase 3 — 데이터 확장 (2주)
+- [ ] 가격 크롤러 (Cheerio + Puppeteer)
+- [ ] Upstash Redis 캐싱
+- [ ] Cloudinary 이미지 파이프라인
+- [ ] 관리자 페이지
+
+### Phase 4 — 고도화 (2주)
+- [ ] PWA 적용
+- [ ] 소셜 로그인 (카카오, 구글)
+- [ ] 북마크/찜
+- [ ] 가격 변동 알림
+- [ ] GitHub Actions CI/CD

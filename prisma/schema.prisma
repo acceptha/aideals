@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,13 +8,13 @@ datasource db {
 }
 
 model Category {
-  id        String     @id @default(cuid())
+  id        String       @id @default(cuid())
   name      String
-  parentId  String?    @map("parent_id")
-  parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children  Category[] @relation("CategoryTree")
-  iconUrl   String?    @map("icon_url")
-  sortOrder Int        @default(0) @map("sort_order")
+  parentId  String?      @map("parent_id")
+  iconUrl   String?      @map("icon_url")
+  sortOrder Int          @default(0) @map("sort_order")
+  parent    Category?    @relation("CategoryTree", fields: [parentId], references: [id])
+  children  Category[]   @relation("CategoryTree")
   styles    CelebStyle[]
 
   @@map("categories")
@@ -28,12 +25,12 @@ model CelebStyle {
   celebName  String           @map("celeb_name")
   imageUrl   String           @map("image_url")
   categoryId String           @map("category_id")
-  category   Category         @relation(fields: [categoryId], references: [id])
   tags       String[]
   gender     String
   season     String
-  products   SimilarProduct[]
   createdAt  DateTime         @default(now()) @map("created_at")
+  category   Category         @relation(fields: [categoryId], references: [id])
+  products   SimilarProduct[]
 
   @@map("celeb_styles")
 }
@@ -41,14 +38,14 @@ model CelebStyle {
 model SimilarProduct {
   id                  String         @id @default(cuid())
   styleId             String         @map("style_id")
-  style               CelebStyle     @relation(fields: [styleId], references: [id])
   brandName           String         @map("brand_name")
   productName         String         @map("product_name")
   productImageUrl     String         @map("product_image_url")
   representativePrice Int            @map("representative_price")
   similarityScore     Float          @default(0) @map("similarity_score")
-  purchaseLinks       PurchaseLink[]
   createdAt           DateTime       @default(now()) @map("created_at")
+  purchaseLinks       PurchaseLink[]
+  style               CelebStyle     @relation(fields: [styleId], references: [id])
 
   @@map("similar_products")
 }
@@ -56,7 +53,6 @@ model SimilarProduct {
 model PurchaseLink {
   id              String         @id @default(cuid())
   productId       String         @map("product_id")
-  product         SimilarProduct @relation(fields: [productId], references: [id])
   platformName    String         @map("platform_name")
   platformLogoUrl String?        @map("platform_logo_url")
   price           Int
@@ -64,6 +60,7 @@ model PurchaseLink {
   productUrl      String         @map("product_url")
   inStock         Boolean        @default(true) @map("in_stock")
   lastCheckedAt   DateTime       @default(now()) @map("last_checked_at")
+  product         SimilarProduct @relation(fields: [productId], references: [id])
 
   @@map("purchase_links")
 }
