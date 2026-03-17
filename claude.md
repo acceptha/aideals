@@ -447,9 +447,15 @@ src/
 
 ---
 
-## Git 커밋
+## Git 커밋 규칙
 
-> 커밋 시 반드시 `npm run commit`을 사용한다. 상세 규칙은 `COMMIT_CONVENTION.md` 참고.
+커밋 메시지 형식, type/scope 목록, 예시는 **[COMMIT_CONVENTION.md](./COMMIT_CONVENTION.md)** 를 참고한다.
+
+규칙 요약:
+- 형식: `<type>(<scope>): <subject>`
+- subject는 한글, 50자 이내, 마침표 없이, 명령형
+- `.git/hooks/commit-msg` 가 형식·길이·마침표·body 구분을 자동 검증하며, 위반 시 커밋이 거부된다
+- 인터랙티브 커밋: `bash scripts/commit.sh`
 
 ---
 
