@@ -1,6 +1,6 @@
 # PROJECT_RULES.md — aideals 추가 규칙
 
-> 이 문서는 `claude.md`(코딩 컨벤션/디자인 패턴)와 `COMMIT_CONVENTION.md`(커밋 규칙)를 **보완**하는 프로젝트 운영 규칙이다.
+> 이 문서는 `claude.md`(코딩 컨벤션/디자인 패턴)를 **보완**하는 프로젝트 운영 규칙이다. Git 커밋 규칙도 이 문서의 섹션 3에 통합되어 있다.
 > 각 규칙은 독립적으로 읽고 수정할 수 있도록 작성되었다.
 >
 > **프로젝트 요약:** aideals는 패션 비교 플랫폼(Next.js 14 App Router + TypeScript + TailwindCSS + Prisma + PostgreSQL)이다.
@@ -12,7 +12,7 @@
 
 1. [테스트 전략](#1-테스트-전략)
 2. [환경 변수 관리](#2-환경-변수-관리)
-3. [브랜치 전략](#3-브랜치-전략)
+3. [브랜치 전략 및 Git 커밋 규칙](#3-브랜치-전략-및-git-커밋-규칙)
 4. [에러 코드 체계](#4-에러-코드-체계)
 5. [데이터 시드 규칙](#5-데이터-시드-규칙)
 6. [성능 기준 (Performance Budget)](#6-성능-기준-performance-budget)
@@ -218,51 +218,191 @@ NEXT_PUBLIC_CLOUDINARY_API_SECRET=abcDEF...  ← ❌ 절대 금지 — 시크릿
 
 ---
 
-## 3. 브랜치 전략
+## 3. 브랜치 전략 및 Git 커밋 규칙
 
 ### 배경
 
-커밋 메시지 규칙(`COMMIT_CONVENTION.md`)은 잘 정의되어 있지만, 브랜치 관리 규칙이 없으면 기능 개발 중 `main` 브랜치가 불안정해지거나, 롤백이 어려워진다.
+1인 개발 프로젝트로, 복잡한 브랜치 전략 없이 `main` 브랜치에서 직접 작업하고 push한다. 대신 커밋 메시지 컨벤션을 엄격하게 유지하여 변경 이력의 가독성과 추적성을 확보한다. 커밋 메시지는 자동화 도구(commit-msg hook, scripts/commit.sh, auto-commit hook)로 검증 및 보조한다.
 
-### 브랜치 구조
+### 3.1 브랜치 전략
 
-```
-main ─────────────────────────────────── 프로덕션 (항상 배포 가능한 상태)
- └── dev ─────────────────────────────── 개발 통합 (기능 병합 후 테스트)
-      ├── feat/style-filter ──────────── 기능 개발
-      ├── fix/price-sort-null ─────────── 버그 수정
-      └── refactor/api-error-handler ── 리팩토링
-```
-
-### 브랜치 네이밍 규칙
+`main` 브랜치 단일 운영이다. 별도의 `dev`, 피처 브랜치를 사용하지 않는다.
 
 ```
-<type>/<간단한-설명>
+main ─────────────────────────────────── 유일한 브랜치 (개발 + 배포)
 ```
 
-| Type | 용도 | 예시 |
+#### 규칙
+
+- 모든 작업은 `main` 브랜치에서 직접 커밋하고 push한다.
+- 별도의 브랜치를 생성하지 않는다.
+- 롤백이 필요하면 `git revert`를 사용한다.
+
+### 3.2 커밋 메시지 형식
+
+```
+<type>(<scope>): <subject>
+
+[body]
+
+[footer]
+```
+
+#### 예시
+
+```
+feat(style): 셀럽 스타일 목록 필터링 기능 구현
+
+- 성별, 시즌, 태그 기반 필터 추가
+- useFilterStore와 URL 쿼리 파라미터 동기화
+- Intersection Observer 기반 무한 스크롤 적용
+
+Phase: 2
+```
+
+### 3.3 Type (필수)
+
+| Type | 설명 | 예시 |
 |------|------|------|
-| `feat` | 새로운 기능 | `feat/style-filter`, `feat/category-grid` |
-| `fix` | 버그 수정 | `fix/price-sort-null`, `fix/image-layout` |
-| `refactor` | 리팩토링 | `refactor/api-error-handler` |
-| `chore` | 설정/의존성 | `chore/vitest-setup` |
-| `docs` | 문서 | `docs/api-spec` |
-| `design` | UI/UX 변경 | `design/mobile-responsive` |
+| `feat` | 새로운 기능 추가 | 카테고리 그리드 컴포넌트 구현 |
+| `fix` | 버그 수정 | 모바일에서 이미지 레이아웃 깨짐 수정 |
+| `refactor` | 기능 변경 없는 코드 리팩토링 | Prisma 쿼리 최적화 |
+| `style` | 코드 포맷팅, 세미콜론 등 (동작 변경 없음) | ESLint 규칙 적용 |
+| `design` | UI/UX 디자인 변경 (TailwindCSS 스타일링) | 상품 카드 반응형 레이아웃 조정 |
+| `docs` | 문서 작성 및 수정 | README 업데이트, API 명세 추가 |
+| `test` | 테스트 코드 추가/수정 | 카테고리 API 단위 테스트 |
+| `chore` | 빌드, 설정, 패키지 관리 등 | TailwindCSS 플러그인 추가 |
+| `init` | 프로젝트 초기 설정 | Next.js 프로젝트 생성 |
+| `db` | 데이터베이스 스키마, 마이그레이션, 시드 | Prisma 마이그레이션 추가 |
+| `perf` | 성능 개선 | Redis 캐싱 적용, 이미지 최적화 |
+| `ci` | CI/CD 파이프라인 설정 | GitHub Actions 워크플로우 추가 |
+| `deploy` | 배포 관련 설정 | Vercel 환경 변수 설정 |
+| `revert` | 이전 커밋 되돌리기 | feat(style) 커밋 되돌리기 |
 
-### 워크플로우
+### 3.4 Scope (필수)
 
-1. `dev` 브랜치에서 피처 브랜치를 생성한다: `git checkout -b feat/style-filter dev`
-2. 피처 브랜치에서 작업 후 커밋한다 (COMMIT_CONVENTION.md 준수)
-3. 작업 완료 후 `dev`로 머지한다: `git checkout dev && git merge feat/style-filter`
-4. `dev`에서 테스트/검증 후 `main`으로 머지한다: `git checkout main && git merge dev`
-5. 머지 완료된 피처 브랜치는 삭제한다: `git branch -d feat/style-filter`
+프로젝트의 도메인 모듈과 기술 영역으로 분류해서 나타내며, 이 중에서 가장 핵심적인 Scope 하나만 선택해 작성한다.
 
-### 규칙
+#### 도메인 Scope
 
-- **`main` 브랜치에 직접 커밋하지 않는다.** 반드시 `dev`를 거친다.
-- **피처 브랜치는 하나의 기능 단위로 만든다.** 여러 기능을 하나의 브랜치에서 작업하지 않는다.
-- **충돌이 발생하면 피처 브랜치에서 `dev`를 rebase한다:** `git rebase dev`
-- Phase 1~2(1인 개발)에서는 `dev`에서 직접 작업해도 허용하되, Phase 3부터는 피처 브랜치를 필수로 사용한다.
+| Scope | 대상 |
+|-------|------|
+| `category` | 카테고리 트리, CategoryGrid, `/api/categories` |
+| `style` | 셀럽 스타일, StyleCard, FilterBar, `/api/styles` |
+| `product` | 유사 상품 비교, ProductCompareCard, `/api/products` |
+| `purchase` | 구매처 목록, PurchaseLinkList, `/api/products/:id/links` |
+| `search` | 통합 검색, SearchBar, `/api/search` |
+
+#### 기술 Scope
+
+| Scope | 대상 |
+|-------|------|
+| `ui` | 공통 UI 컴포넌트 (Button, Card, Modal, Skeleton 등) |
+| `layout` | 레이아웃, 네비게이션, 반응형 구조 |
+| `auth` | NextAuth.js 인증, 소셜 로그인 |
+| `prisma` | Prisma 스키마, 마이그레이션, 시드 |
+| `cache` | Redis(Upstash) 캐싱 |
+| `scraper` | Cheerio/Puppeteer 가격 크롤러 |
+| `image` | Cloudinary, next/image 이미지 처리 |
+| `pwa` | next-pwa, 서비스 워커, 오프라인 |
+| `store` | Zustand 상태 관리 |
+| `api` | API Route 공통 (미들웨어, 에러 핸들링) |
+| `config` | 프로젝트 설정 (next.config, tailwind.config, tsconfig 등) |
+| `deps` | 패키지 의존성 추가/업데이트/삭제 |
+| `cicd` | GitHub Actions, Vercel 배포 설정 |
+
+### 3.5 Subject / Body / Footer 규칙
+
+#### Subject (필수)
+
+- 한글로 작성한다
+- 50자 이내로 간결하게 작성한다
+- 마침표를 붙이지 않는다
+- 명령형으로 작성한다 (예: "추가", "수정", "제거", "개선")
+
+#### Body (선택)
+
+- Subject만으로 설명이 부족할 때 작성한다
+- Subject와 Body 사이에 **반드시 빈 줄 1개**를 넣는다
+- 무엇을, 왜 변경했는지 설명한다
+- 각 항목은 `-`로 시작한다
+- 한 줄은 72자 이내로 작성한다
+
+#### Footer (선택)
+
+- `Phase: 1~4` — 개발 로드맵 단계 표기
+- `Breaking:` — 호환성이 깨지는 변경 사항
+- `Closes: #이슈번호` — 관련 이슈 닫기
+- `Related: #이슈번호` — 관련 이슈 참조
+
+### 3.6 자동 검증 (commit-msg hook)
+
+`.git/hooks/commit-msg` 훅이 커밋 시 아래 항목을 자동 검증하며, 위반 시 커밋이 거부된다.
+
+| 검증 항목 | 규칙 | 위반 시 |
+|----------|------|--------|
+| 형식 | `<type>(<scope>): <subject>` 패턴 필수 | 커밋 거부 + 허용 type/scope 안내 |
+| Subject 길이 | 50자 이내 | 커밋 거부 + 현재 길이 표시 |
+| 마침표 금지 | Subject 끝에 `.` 불가 | 커밋 거부 |
+| Body 구분 | Subject-Body 사이 빈 줄 필수 | 커밋 거부 |
+| 예외 | Merge, Revert 커밋은 검증 건너뜀 | — |
+
+### 3.7 인터랙티브 커밋 도구 (scripts/commit.sh)
+
+`bash scripts/commit.sh`를 실행하면 아래 과정을 자동으로 수행한다.
+
+1. **스테이징 확인**: 스테이징된 파일이 없으면 전체 스테이징(`git add -A`) 여부를 물어본다
+2. **변경 분석**: 변경된 파일 경로를 분석하여 type과 scope를 자동 추론한다
+3. **메시지 추천**: 분석 결과를 바탕으로 커밋 메시지 3개를 추천한다
+4. **선택/편집**: 추천 메시지 선택, 직접 입력, 선택 후 편집 중 하나를 고른다
+5. **Body 추가**: 선택적으로 Body를 추가할 수 있다
+6. **테스트 실행**: 테스트 파일이 존재하면 `vitest run`을 자동 실행하고, 실패 시 커밋을 차단한다
+7. **커밋 & Push**: commit-msg hook 검증을 거친 뒤 `origin/<현재 브랜치>`로 push한다
+
+옵션: `bash scripts/commit.sh --no-push` — push 없이 커밋만 실행한다.
+
+### 3.8 자동 커밋 (Claude Code Stop Hook)
+
+`.claude/hooks/auto-commit.mjs`가 Claude Code 세션 완료 시 자동으로 트리거된다.
+
+- Claude 응답이 끝날 때마다 `git status --porcelain`으로 변경사항을 확인한다
+- 변경사항이 있으면 `scripts/commit.sh`를 인터랙티브 모드로 실행한다
+- `stop_hook_active` 플래그로 무한 루프를 방지한다
+- 변경사항이 없으면 아무것도 하지 않고 종료한다
+
+### 3.9 커밋 메시지 예시 모음
+
+```bash
+# Phase 1 — MVP
+init(config): Next.js 프로젝트 초기 설정
+db(prisma): 카테고리, 셀럽스타일, 상품, 구매처 스키마 정의
+feat(category): CategoryGrid 컴포넌트 구현
+feat(style): StyleCard 컴포넌트 및 스타일 목록 페이지 구현
+design(layout): 모바일 우선 반응형 레이아웃 완성
+
+# Phase 2 — 핵심 기능
+feat(product): ProductCompareCard 컴포넌트 구현
+feat(purchase): PurchaseLinkList 구매처 목록 구현
+feat(style): 성별/시즌/태그 필터 기능 추가
+feat(search): 통합 검색 API 및 SearchBar 구현
+feat(api): 카테고리 API Route 구현
+
+# Phase 3 — 데이터 확장
+feat(scraper): Cheerio 기반 가격 크롤러 구현
+perf(cache): Upstash Redis 가격 캐싱 적용
+feat(image): Cloudinary 이미지 업로드 파이프라인 구현
+
+# Phase 4 — 고도화
+feat(pwa): next-pwa 서비스 워커 및 오프라인 캐싱 적용
+feat(auth): NextAuth.js 카카오/구글 소셜 로그인 연동
+ci(cicd): GitHub Actions lint/typecheck/test 파이프라인 구성
+
+# 일반
+fix(product): 가격순 정렬 시 null 가격 처리 오류 수정
+refactor(store): useFilterStore 셀렉터 패턴 개선
+docs(api): 스타일 API 엔드포인트 명세 추가
+chore(deps): zustand 4.5.0 버전 업데이트
+```
 
 ---
 

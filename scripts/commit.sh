@@ -44,14 +44,14 @@ cd "$PROJECT_ROOT"
 # ============================================================
 # COMMIT_CONVENTION.md 경로
 # ============================================================
-CONVENTION_FILE="$PROJECT_ROOT/COMMIT_CONVENTION.md"
+CONVENTION_FILE="$PROJECT_ROOT/PROJECT_RULES.md"
 
 # ============================================================
 # 컨벤션 요약 출력 함수
 # ============================================================
 show_convention_summary() {
   echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${BOLD}  📖 커밋 컨벤션 요약  ${DIM}(전체: COMMIT_CONVENTION.md)${NC}"
+  echo -e "${BOLD}  📖 커밋 컨벤션 요약  ${DIM}(전체: PROJECT_RULES.md 섹션 3)${NC}"
   echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo ""
   echo -e "  ${BOLD}형식:${NC}  ${GREEN}<type>(<scope>): <subject>${NC}"
@@ -80,7 +80,7 @@ show_convention_summary() {
     echo -e "  ${BOLD}Type:${NC}  feat fix refactor style design docs test chore init db perf ci deploy revert"
     echo -e "  ${BOLD}Scope:${NC} category style product purchase search"
     echo -e "         ui layout auth prisma cache scraper image pwa store api config deps cicd"
-    echo -e "  ${RED}  ⚠ COMMIT_CONVENTION.md 파일을 찾을 수 없습니다: $CONVENTION_FILE${NC}"
+    echo -e "  ${RED}  ⚠ PROJECT_RULES.md 파일을 찾을 수 없습니다: $CONVENTION_FILE${NC}"
   fi
 
   echo ""
@@ -95,7 +95,7 @@ show_convention_full() {
   if [ -f "$CONVENTION_FILE" ]; then
     echo ""
     echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BOLD}  📄 COMMIT_CONVENTION.md 전체 내용${NC}"
+  echo -e "${BOLD}  📄 커밋 규칙 전체 내용 (PROJECT_RULES.md)${NC}"
     echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
     # less가 있으면 less, 없으면 cat
@@ -106,7 +106,7 @@ show_convention_full() {
     fi
     echo ""
   else
-    echo -e "${RED}  ⚠ COMMIT_CONVENTION.md 파일을 찾을 수 없습니다.${NC}"
+    echo -e "${RED}  ⚠ PROJECT_RULES.md 파일을 찾을 수 없습니다.${NC}"
     echo -e "${DIM}  경로: $CONVENTION_FILE${NC}"
     echo ""
   fi
@@ -428,7 +428,7 @@ echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo -e "  ${BOLD}4)${NC} 직접 입력"
 echo -e "  ${BOLD}e)${NC} 선택 후 편집"
-echo -e "  ${BOLD}c)${NC} 컨벤션 전체 보기 ${DIM}(COMMIT_CONVENTION.md)${NC}"
+echo -e "  ${BOLD}c)${NC} 커밋 규칙 전체 보기 ${DIM}(PROJECT_RULES.md)${NC}"
 echo -e "  ${BOLD}q)${NC} 취소"
 echo ""
 read -rp "  선택 [1/2/3/4/e/c/q]: " choice

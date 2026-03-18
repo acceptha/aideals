@@ -449,11 +449,18 @@ src/
 
 ## Git 커밋 규칙
 
-커밋 메시지 형식, type/scope 목록, 예시는 **[COMMIT_CONVENTION.md](./COMMIT_CONVENTION.md)** 를 참고한다.
+**git commit, push 요청을 받으면 반드시 `bash scripts/commit.sh`를 실행한다.** `git commit -m`이나 `git push`를 직접 실행하지 않는다.
 
-규칙 요약:
-- `.git/hooks/commit-msg` 가 형식·길이·마침표·body 구분을 자동 검증하며, 위반 시 커밋이 거부된다
-- 인터랙티브 커밋: `bash scripts/commit.sh`
+```bash
+# ✅ 올바른 방법
+bash scripts/commit.sh            # 커밋 + push
+bash scripts/commit.sh --no-push  # 커밋만 (push 없이)
+
+# ❌ 금지
+git add -A && git commit -m "..." && git push
+```
+
+> 커밋 메시지 형식, type/scope 목록, 자동 검증 등 상세 규칙은 **[PROJECT_RULES.md > 3. 브랜치 전략 및 Git 커밋 규칙](./PROJECT_RULES.md#3-브랜치-전략-및-git-커밋-규칙)** 를 참고한다.
 
 ---
 
