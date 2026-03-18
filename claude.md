@@ -449,18 +449,25 @@ src/
 
 ## Git 커밋 규칙
 
-**git commit, push 요청을 받으면 반드시 `bash scripts/commit.sh`를 실행한다.** `git commit -m`이나 `git push`를 직접 실행하지 않는다.
+```
+<type>(<scope>): <subject>
 
-```bash
-# ✅ 올바른 방법
-bash scripts/commit.sh            # 커밋 + push
-bash scripts/commit.sh --no-push  # 커밋만 (push 없이)
+[body]
 
-# ❌ 금지
-git add -A && git commit -m "..." && git push
+[footer]
 ```
 
-> 커밋 메시지 형식, type/scope 목록, 자동 검증 등 상세 규칙은 **[PROJECT_RULES.md > 3. 브랜치 전략 및 Git 커밋 규칙](./PROJECT_RULES.md#3-브랜치-전략-및-git-커밋-규칙)** 를 참고한다.
+- **Type**: feat, fix, refactor, style, design, docs, test, chore, init, db, perf, ci, deploy, revert
+- **Scope**: category, style, product, purchase, search, ui, layout, auth, prisma, cache, scraper, image, pwa, store, api, config, deps, cicd
+- **Subject**: 한글, 50자 이내, 마침표 없이, 명령형
+- **Body** (선택): Subject와 빈 줄 1개로 구분, `-`로 시작, 72자 이내
+- **Footer** (선택): `Phase: 1~4`, `Breaking: 내용`
+
+`.git/hooks/commit-msg`가 형식을 자동 검증하며, 위반 시 커밋이 거부된다.
+커밋 전 반드시 사용자에게 커밋 메시지를 보여주고 승인을 받은 후 실행한다.
+파일이나 커밋 이력을 삭제하는 git 명령은 사용하지 않는다.
+
+> 상세 규칙은 **[PROJECT_RULES.md > 3. 브랜치 전략 및 Git 커밋 규칙](./PROJECT_RULES.md#3-브랜치-전략-및-git-커밋-규칙)** 를 참고한다.
 
 ---
 
