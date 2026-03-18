@@ -281,7 +281,7 @@ Phase: 2
 
 ### 3.4 Scope (필수)
 
-프로젝트의 도메인 모듈 또는 기술 영역을 나타낸다. 도메인 또는 기술 중 핵심적인 scope 하나만 골라서 적는다.
+프로젝트의 도메인 모듈과 기술 영역으로 분류해서 나타내며, 이 중에서 가장 핵심적인 Scope 하나만 선택해 작성한다.
 
 #### 도메인 Scope
 
@@ -387,112 +387,296 @@ chore(deps): zustand 4.5.0 버전 업데이트
 
 현재 프로젝트의 에러 처리는 `AppError`, `NotFoundError`, `ValidationError` 클래스를 사용하고, HTTP 상태 코드와 메시지를 반환한다(`claude.md` 참고). 그러나 프론트엔드에서 에러 유형별로 다른 UI를 보여주려면 HTTP 상태 코드만으로는 구분이 부족하다.
 
+### 핵심 원칙
+
+#### 원칙 1: 에러 코드는 도메인별로 정의한다
+
+에러 코드는 프로젝트의 도메인(카테고리, 스타일, 상품 등)과 기술 영역(검증, 크롤러 등)에 맞게 그룹화하여 정의한다. 단, 파일은 `src/lib/api/errorCodes.ts` **한 곳**에서 관리하고 내부에서 주석 섹션으로 도메인을 구분한다. 에러 코드가 50개를 넘기 전까지 파일을 분리하지 않는다.
+
+#### 원칙 2: 에러 응답 구조는 도메인과 관계없이 항상 동일하다
+
+어떤 API에서 어떤 에러가 발생하든, 프론트엔드가 받는 에러 응답의 구조는 항상 같다. 프론트엔드는 하나의 타입(`ApiErrorResponse`)만으로 모든 에러를 처리할 수 있어야 한다.
+
 ### 에러 응답 포맷
 
 ```json
 {
   "status": 400,
   "code": "INVALID_FILTER_VALUE",
-  "message": "gender 값은 male, female, unisex 중 하나여야 합니다"
+  "message": "gender 값은 male, female, unisex 중 하나여야 합니다",
+  "details": { "field": "gender", "allowed": ["male", "female", "unisex"], "received": "unknown" }
 }
 ```
 
-| 필드 | 타입 | 설명 |
-|------|------|------|
-| `status` | `number` | HTTP 상태 코드 |
-| `code` | `string` | 머신 리더블 에러 코드 (프론트엔드 분기용) |
-| `message` | `string` | 사람이 읽을 수 있는 에러 설명 (한글) |
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `status` | `number` | ✅ | HTTP 상태 코드 |
+| `code` | `ErrorCode` | ✅ | 머신 리더블 에러 코드 (프론트엔드 분기용) |
+| `message` | `string` | ✅ | 사람이 읽을 수 있는 에러 설명 (한글) |
+| `details` | `Record<string, unknown>` | ❌ | 에러의 추가 컨텍스트 (선택적) |
+
+`details`는 기본 3개 필드만으로 정보가 부족한 경우에만 사용한다:
+
+- **Validation 에러**: 어떤 필드가 잘못됐는지, 허용 값은 뭔인지 전달
+- **크롤러 경고**: 캐시된 데이터의 시점(`cachedAt`) 전달
+- **일반 에러**: `details` 없이 `status` + `code` + `message`만 반환
+
+`details`가 있든 없든 응답 구조(타입) 자체는 항상 동일하다.
 
 ### 에러 코드 목록
 
-#### 공통 (Common)
+에러 코드는 `as const` 객체로 정의하여 프론트엔드와 백엔드에서 타입 안전하게 공유한다.
+
+```typescript
+// src/lib/api/errorCodes.ts
+export const ERROR_CODES = {
+  // ── Common ──
+  INTERNAL_SERVER_ERROR: "INTERNAL_SERVER_ERROR",
+  METHOD_NOT_ALLOWED: "METHOD_NOT_ALLOWED",
+
+  // ── Validation ──
+  MISSING_REQUIRED_FIELD: "MISSING_REQUIRED_FIELD",
+  INVALID_FILTER_VALUE: "INVALID_FILTER_VALUE",
+  INVALID_SORT_VALUE: "INVALID_SORT_VALUE",
+  INVALID_PAGINATION: "INVALID_PAGINATION",
+  INVALID_ID_FORMAT: "INVALID_ID_FORMAT",
+
+  // ── Category ──
+  CATEGORY_NOT_FOUND: "CATEGORY_NOT_FOUND",
+
+  // ── Style ──
+  STYLE_NOT_FOUND: "STYLE_NOT_FOUND",
+
+  // ── Product ──
+  PRODUCT_NOT_FOUND: "PRODUCT_NOT_FOUND",
+
+  // ── Scraper ──
+  SCRAPER_TARGET_UNREACHABLE: "SCRAPER_TARGET_UNREACHABLE",
+  SCRAPER_PARSE_FAILED: "SCRAPER_PARSE_FAILED",
+  PRICE_DATA_STALE: "PRICE_DATA_STALE",
+
+  // ── Auth (Phase 4) ──
+  // AUTH_REQUIRED: "AUTH_REQUIRED",
+  // AUTH_TOKEN_EXPIRED: "AUTH_TOKEN_EXPIRED",
+  // AUTH_FORBIDDEN: "AUTH_FORBIDDEN",
+} as const;
+
+export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
+```
+
+#### 에러 코드 상세
+
+##### 공통 (Common)
 
 | 코드 | 상태 | 설명 |
 |------|------|------|
 | `INTERNAL_SERVER_ERROR` | 500 | 예상치 못한 서버 오류 |
 | `METHOD_NOT_ALLOWED` | 405 | 지원하지 않는 HTTP 메서드 |
 
-#### 검증 (Validation) — 400
+##### 검증 (Validation)
 
-| 코드 | 설명 |
-|------|------|
-| `MISSING_REQUIRED_FIELD` | 필수 필드 누락 |
-| `INVALID_FILTER_VALUE` | 필터 값이 허용 범위 밖 |
-| `INVALID_SORT_VALUE` | 정렬 기준이 허용 값 밖 |
-| `INVALID_PAGINATION` | page/limit 값이 유효하지 않음 |
-| `INVALID_ID_FORMAT` | ID 포맷이 올바르지 않음 |
+| 코드 | 상태 | 설명 | `details` 예시 |
+|------|------|------|---------------|
+| `MISSING_REQUIRED_FIELD` | 400 | 필수 필드 누락 | `{ "field": "categoryId" }` |
+| `INVALID_FILTER_VALUE` | 400 | 필터 값이 허용 범위 밖 | `{ "field": "gender", "allowed": ["male", "female", "unisex"] }` |
+| `INVALID_SORT_VALUE` | 400 | 정렬 기준이 허용 값 밖 | `{ "field": "sort", "allowed": ["price", "brand", "similarity"] }` |
+| `INVALID_PAGINATION` | 400 | page/limit 값이 유효하지 않음 | `{ "field": "page", "min": 1 }` |
+| `INVALID_ID_FORMAT` | 400 | ID 포맷이 올바르지 않음 | `{ "field": "id", "received": "abc!@#" }` |
 
-#### 리소스 (Resource) — 404
+##### 리소스 (Resource)
 
-| 코드 | 설명 |
-|------|------|
-| `CATEGORY_NOT_FOUND` | 카테고리를 찾을 수 없음 |
-| `STYLE_NOT_FOUND` | 셀럽 스타일을 찾을 수 없음 |
-| `PRODUCT_NOT_FOUND` | 상품을 찾을 수 없음 |
+| 코드 | 상태 | 설명 |
+|------|------|------|
+| `CATEGORY_NOT_FOUND` | 404 | 카테고리를 찾을 수 없음 |
+| `STYLE_NOT_FOUND` | 404 | 셀럽 스타일을 찾을 수 없음 |
+| `PRODUCT_NOT_FOUND` | 404 | 상품을 찾을 수 없음 |
 
-#### 크롤러 (Scraper) — 502/503
+##### 크롤러 (Scraper)
 
-| 코드 | 설명 |
-|------|------|
-| `SCRAPER_TARGET_UNREACHABLE` | 크롤링 대상 사이트 접근 불가 |
-| `SCRAPER_PARSE_FAILED` | HTML 파싱 실패 |
-| `PRICE_DATA_STALE` | 캐시된 가격 데이터를 폴백으로 사용 중 (경고) |
+| 코드 | 상태 | 설명 | `details` 예시 |
+|------|------|------|---------------|
+| `SCRAPER_TARGET_UNREACHABLE` | 502 | 크롤링 대상 사이트 접근 불가 | `{ "target": "musinsa.com", "timeout": 5000 }` |
+| `SCRAPER_PARSE_FAILED` | 502 | HTML 파싱 실패 | `{ "target": "musinsa.com", "selector": ".product-price" }` |
+| `PRICE_DATA_STALE` | 200 | 캐시된 가격 데이터를 폴백으로 사용 중 (경고) | `{ "cachedAt": "2025-03-15T09:00:00Z" }` |
+
+##### 인증 (Auth) — Phase 4에서 활성화
+
+| 코드 | 상태 | 설명 |
+|------|------|------|
+| `AUTH_REQUIRED` | 401 | 로그인이 필요한 요청 |
+| `AUTH_TOKEN_EXPIRED` | 401 | 세션/토큰 만료 |
+| `AUTH_FORBIDDEN` | 403 | 권한 없음 |
+
+### 에러 코드 → HTTP 상태 코드 매핑
+
+에러 코드와 HTTP 상태 코드의 짝을 한 곳에서 관리한다. 개발자가 에러를 throw할 때 상태 코드를 직접 입력하면 실수(예: `STYLE_NOT_FOUND`인데 400을 넘기는 등)가 발생할 수 있다. 매핑 테이블을 두면 에러 코드만 지정해도 상태 코드가 자동으로 결정된다.
+
+```typescript
+// src/lib/api/errorCodes.ts 에 함께 정의
+export const ERROR_STATUS_MAP: Record<ErrorCode, number> = {
+  INTERNAL_SERVER_ERROR: 500,
+  METHOD_NOT_ALLOWED: 405,
+  MISSING_REQUIRED_FIELD: 400,
+  INVALID_FILTER_VALUE: 400,
+  INVALID_SORT_VALUE: 400,
+  INVALID_PAGINATION: 400,
+  INVALID_ID_FORMAT: 400,
+  CATEGORY_NOT_FOUND: 404,
+  STYLE_NOT_FOUND: 404,
+  PRODUCT_NOT_FOUND: 404,
+  SCRAPER_TARGET_UNREACHABLE: 502,
+  SCRAPER_PARSE_FAILED: 502,
+  PRICE_DATA_STALE: 200,
+};
+```
+
+에러 클래스에서 매핑을 활용한다:
+
+```typescript
+// 사용 시: 에러 코드만 넘기면 상태 코드는 자동
+throw AppError.fromCode("STYLE_NOT_FOUND", "해당 스타일을 찾을 수 없습니다");
+// → statusCode: 404 (매핑 테이블에서 자동 결정)
+```
 
 ### 구현 방법
 
-기존 `AppError` 클래스에 `code` 필드를 추가한다.
+#### 에러 클래스
+
+기존 `AppError` 클래스에 `code` 필드와 `details` 필드를 추가하고, `fromCode` 정적 메서드로 매핑 테이블을 활용한다.
 
 ```typescript
-// src/lib/api/errors.ts 수정
+// src/lib/api/errors.ts
+import { ERROR_STATUS_MAP, type ErrorCode } from "./errorCodes";
+
 export class AppError extends Error {
   constructor(
     message: string,
     public statusCode: number = 500,
-    public code: string = "INTERNAL_SERVER_ERROR",
+    public code: ErrorCode = "INTERNAL_SERVER_ERROR",
+    public details?: Record<string, unknown>,
   ) {
     super(message);
+  }
+
+  /** 에러 코드만 지정하면 상태 코드가 자동 결정된다 */
+  static fromCode(
+    code: ErrorCode,
+    message: string,
+    details?: Record<string, unknown>,
+  ): AppError {
+    return new AppError(message, ERROR_STATUS_MAP[code], code, details);
   }
 }
 
 export class NotFoundError extends AppError {
-  constructor(resource: string, code: string) {
-    super(`${resource}을(를) 찾을 수 없습니다`, 404, code);
+  constructor(resource: string, code: ErrorCode) {
+    super(`${resource}을(를) 찾을 수 없습니다`, ERROR_STATUS_MAP[code], code);
   }
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, code: string = "MISSING_REQUIRED_FIELD") {
-    super(message, 400, code);
+  constructor(
+    message: string,
+    code: ErrorCode = "MISSING_REQUIRED_FIELD",
+    details?: Record<string, unknown>,
+  ) {
+    super(message, ERROR_STATUS_MAP[code], code, details);
   }
 }
 ```
 
-`withErrorHandler`의 에러 응답에도 `code`를 포함한다.
+#### 에러 핸들러 래퍼
+
+`withErrorHandler`의 에러 응답에 `code`와 `details`를 포함한다.
 
 ```typescript
-// withErrorHandler.ts 응답 변경
+// src/lib/api/withErrorHandler.ts 응답 변경
 return NextResponse.json(
-  { status: error.statusCode, code: error.code, message: error.message },
+  {
+    status: error.statusCode,
+    code: error.code,
+    message: error.message,
+    ...(error.details && { details: error.details }),
+  },
   { status: error.statusCode },
 );
 ```
 
-### 프론트엔드 활용 예시
+#### 에러 응답 타입 (프론트엔드 공유)
 
 ```typescript
-// 클라이언트에서 에러 코드 기반 분기
-if (error.code === "STYLE_NOT_FOUND") {
-  // "해당 스타일이 삭제되었거나 존재하지 않습니다" UI 표시
-} else if (error.code === "PRICE_DATA_STALE") {
-  // "가격 정보가 최신이 아닐 수 있습니다" 경고 배너 표시
+// src/types/api.ts
+import type { ErrorCode } from "@/lib/api/errorCodes";
+
+export interface ApiErrorResponse {
+  status: number;
+  code: ErrorCode;
+  message: string;
+  details?: Record<string, unknown>;
 }
+```
+
+### 프론트엔드 에러 핸들링 유틸
+
+API를 호출하는 클라이언트 코드마다 `fetch` → `response.json()` → 타입 캐스팅을 반복하지 않도록, 공통 fetch 래퍼를 제공한다. 이 래퍼는 응답이 에러인 경우 `ApiErrorResponse` 타입으로 자동 변환하여 throw한다.
+
+```typescript
+// src/lib/api/fetchApi.ts
+import type { ApiErrorResponse } from "@/types/api";
+
+export async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, options);
+
+  if (!res.ok) {
+    const error: ApiErrorResponse = await res.json();
+    throw error; // 호출부에서 error.code로 분기 가능
+  }
+
+  return res.json();
+}
+```
+
+프론트엔드 활용 예시:
+
+```typescript
+import { fetchApi } from "@/lib/api/fetchApi";
+import { ERROR_CODES } from "@/lib/api/errorCodes";
+import type { ApiErrorResponse } from "@/types/api";
+
+try {
+  const data = await fetchApi<StyleListResponse>("/api/styles?gender=male");
+} catch (err) {
+  const error = err as ApiErrorResponse;
+
+  if (error.code === ERROR_CODES.STYLE_NOT_FOUND) {
+    // "해당 스타일이 삭제되었거나 존재하지 않습니다" UI 표시
+  } else if (error.code === ERROR_CODES.INVALID_FILTER_VALUE) {
+    // details.field로 어떤 필드가 잘못됐는지 표시
+  } else if (error.code === ERROR_CODES.PRICE_DATA_STALE) {
+    // "가격 정보가 최신이 아닐 수 있습니다" 경고 배너 표시
+  }
+}
+```
+
+### 파일 구조
+
+```
+src/lib/api/
+├── errorCodes.ts       ← ERROR_CODES 상수, ErrorCode 타입, ERROR_STATUS_MAP
+├── errors.ts           ← AppError, NotFoundError, ValidationError 클래스
+├── withErrorHandler.ts ← 에러 핸들러 래퍼 (code, details 포함 응답)
+└── fetchApi.ts         ← 프론트엔드 fetch 래퍼 (Phase 2에서 구현)
+
+src/types/
+└── api.ts              ← ApiErrorResponse 인터페이스
 ```
 
 ### 적용 시점
 
-- Phase 1: `AppError`에 `code` 필드 추가, 기본 에러 코드 정의
-- Phase 2: API Route 개발 시 모든 에러에 코드 부여
-- Phase 3: 크롤러 관련 에러 코드 추가
+- Phase 1: `errorCodes.ts` 생성 (ERROR_CODES, ERROR_STATUS_MAP), `errors.ts`에 `code`/`details` 필드 추가, `ApiErrorResponse` 타입 정의
+- Phase 2: API Route 개발 시 모든 에러에 코드 부여, `fetchApi.ts` 구현, `withErrorHandler`에 `code`/`details` 응답 적용
+- Phase 3: 크롤러 관련 에러 코드 활성화, `details`에 크롤러 컨텍스트 포함
+- Phase 4: Auth 에러 코드 주석 해제 및 활성화
 
 ---
 

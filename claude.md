@@ -216,9 +216,12 @@ model PurchaseLink {
 
 ### 에러 처리
 
-- API Route에서는 try-catch로 감싸고, 적절한 HTTP 상태 코드와 에러 메시지를 반환한다.
+- 에러는 `ERROR_CODES`(`src/lib/api/errorCodes.ts`)에 정의된 코드를 사용한다. 상태 코드를 직접 입력하지 않고 `AppError.fromCode()` 또는 서브클래스(`NotFoundError`, `ValidationError`)를 사용한다.
+- API 에러 응답은 항상 `{ status, code, message, details? }` 구조다. `details`는 Validation/크롤러 등 추가 정보가 필요한 경우에만 포함한다.
 - 페이지에는 `error.tsx`와 `loading.tsx`를 배치하여 에러/로딩 상태를 처리한다.
 - 크롤러 실패 시 Redis 캐시의 이전 데이터를 폴백으로 사용한다.
+
+> 에러 코드 목록, 응답 포맷, 구현 패턴 상세는 **[PROJECT_RULES.md > 4. 에러 코드 체계](./PROJECT_RULES.md#4-에러-코드-체계)** 를 참고한다.
 
 ---
 
@@ -309,7 +312,7 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
 export const GET = withErrorHandler(async (req: NextRequest, ctx: RouteContext) => {
   const { id } = await ctx.params;
   const style = await prisma.celebStyle.findUnique({ where: { id } });
-  if (!style) throw new NotFoundError("스타일");
+  if (!style) throw new NotFoundError("스타일", "STYLE_NOT_FOUND");
   return NextResponse.json(style);
 });
 ```
@@ -317,58 +320,21 @@ export const GET = withErrorHandler(async (req: NextRequest, ctx: RouteContext) 
 #### 4.3 API 응답 포맷
 
 ```
-성공 (단건):  200 { id, name, ... }           ← 데이터 직접 반환
-성공 (목록):  200 { data: [...], pagination }  ← data 배열 + 페이지네이션
-에러:        4xx/5xx { status, message }       ← 상태코드 + 메시지
+성공 (단건):  200 { id, name, ... }                          ← 데이터 직접 반환
+성공 (목록):  200 { data: [...], pagination }                 ← data 배열 + 페이지네이션
+에러:        4xx/5xx { status, code, message, details? }     ← 에러 코드 체계 (PROJECT_RULES.md §4)
 ```
 
 ---
 
 ### 5. 에러 처리 (중앙 집중)
 
-#### 5.1 커스텀 에러 클래스
+- 에러 코드는 `src/lib/api/errorCodes.ts`의 `ERROR_CODES` 상수를 사용한다.
+- 에러를 throw할 때 상태 코드를 직접 입력하지 않는다. `AppError.fromCode(code, message, details?)` 또는 서브클래스를 사용하면 `ERROR_STATUS_MAP`에서 상태 코드가 자동 결정된다.
+- `withErrorHandler` 래퍼가 `{ status, code, message, details? }` 형태로 응답을 통일한다.
+- 프론트엔드에서는 `fetchApi()`(`src/lib/api/fetchApi.ts`)로 호출하고, `ERROR_CODES` 상수로 에러 분기한다.
 
-```typescript
-// src/lib/api/errors.ts
-export class AppError extends Error {
-  constructor(message: string, public statusCode: number = 500) {
-    super(message);
-  }
-}
-export class NotFoundError extends AppError {
-  constructor(resource: string) { super(`${resource}을(를) 찾을 수 없습니다`, 404); }
-}
-export class ValidationError extends AppError {
-  constructor(message: string) { super(message, 400); }
-}
-```
-
-#### 5.2 에러 핸들러 래퍼
-
-```typescript
-// src/lib/api/withErrorHandler.ts
-export const withErrorHandler = (handler: RouteHandler): RouteHandler => {
-  return async (req, ctx) => {
-    try {
-      return await handler(req, ctx);
-    } catch (error) {
-      if (error instanceof AppError) {
-        return NextResponse.json(
-          { status: error.statusCode, message: error.message },
-          { status: error.statusCode },
-        );
-      }
-      console.error("[API Error]", error);
-      return NextResponse.json(
-        { status: 500, message: "서버 내부 오류가 발생했습니다" },
-        { status: 500 },
-      );
-    }
-  };
-};
-```
-
-핸들러 내부에서는 `throw`만 하면 `withErrorHandler`가 일괄 처리한다.
+> 에러 클래스, 핸들러 래퍼, 응답 타입, 에러 코드 목록 등 **전체 구현 패턴은 [PROJECT_RULES.md > 4. 에러 코드 체계](./PROJECT_RULES.md#4-에러-코드-체계)** 를 참고한다.
 
 ---
 
