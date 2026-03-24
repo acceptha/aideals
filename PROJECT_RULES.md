@@ -137,35 +137,69 @@ GitHub Actions에서 PR마다 `vitest run`을 실행한다. 테스트 실패 시
 
 `.env`, `.env.development`, `.env.production` 등 Next.js가 지원하는 다른 파일은 사용하지 않는다. 파일이 많아지면 "어떤 파일의 값이 적용된 건지" 추적이 어렵기 때문에 `.env.example` + `.env.local` 두 개만 사용한다.
 
-#### 규칙 2: 앱 시작 시 필수 변수 검증
+#### 규칙 2: 변수 규칙은 `src/lib/envRules.ts` 한 곳에서 관리한다 (Single Source of Truth)
 
-필수 변수가 없으면 앱이 시작 시점에 즉시 에러를 던진다. `src/lib/env.ts`에서 검증한다.
+모든 환경 변수의 키, 필수 여부, Phase, 형식 검증 함수는 `src/lib/envRules.ts`의 `ENV_RULES` 배열에 정의한다. `env.ts`(런타임 접근)와 `scripts/validate-env.ts`(검증 스크립트) 양쪽에서 이 파일을 import하므로, 변수를 추가하거나 필수 여부를 변경할 때 `envRules.ts`만 수정하면 양쪽에 자동 반영된다.
 
-```typescript
-// src/lib/env.ts
-function getRequiredEnv(key: string): string {
-  const value = process.env[key];
-  if (!value) throw new Error(`환경 변수 ${key}가 설정되지 않았습니다`);
-  return value;
-}
-
-function getOptionalEnv(key: string): string | undefined {
-  return process.env[key] || undefined;
-}
-
-export const env = {
-  // Phase 1 — 필수
-  DATABASE_URL: getRequiredEnv("DATABASE_URL"),
-
-  // Phase 3 — 해당 Phase 도달 시 getRequiredEnv로 변경
-  // UPSTASH_REDIS_REST_URL: getOptionalEnv("UPSTASH_REDIS_REST_URL"),
-  // UPSTASH_REDIS_REST_TOKEN: getOptionalEnv("UPSTASH_REDIS_REST_TOKEN"),
-};
+```
+envRules.ts  ←── single source of truth (변수 규칙 정의)
+    ├── env.ts          (import해서 런타임 접근 객체 자동 생성)
+    └── validate-env.ts (import해서 검증 실행)
 ```
 
-Phase가 진행되면 해당 변수를 `getOptionalEnv` → `getRequiredEnv`로 변경하여, 빠뜨렸을 때 `npm run dev` 시점에서 즉시 알 수 있게 한다.
+`EnvVarRule` 인터페이스:
 
-#### 규칙 3: 환경 변수 접근은 `src/lib/env.ts` 한 곳에서만
+```typescript
+interface EnvVarRule {
+  key: string;           // 환경 변수 이름
+  required: boolean;     // 필수 여부 (Phase에 따라 변경)
+  phase: number;         // 해당 Phase
+  serverOnly: boolean;   // 서버 전용 여부
+  validate?: (value: string) => string | null;  // 형식 검증 함수
+  description: string;   // 설명
+}
+```
+
+Phase가 진행되면 해당 변수의 `required`를 `false` → `true`로 변경하고, `env.ts`에서 주석을 해제하면 된다.
+
+#### 규칙 3: 커밋 전 / 런타임 전 환경 변수 검증
+
+환경 변수는 **두 시점**에 자동 검증되며, 각 시점의 역할이 다르다.
+
+##### Pre-commit hook (보안 검증 — 순수 shell)
+
+`.git/hooks/pre-commit`은 Node 프로세스를 띄우지 않고 shell만으로 빠르게 실행된다. 보안 사고 방지에 집중한다:
+
+1. **`.env` 파일 커밋 방지**: `.env.example`을 제외한 모든 `.env*` 파일이 스테이징에 포함되면 커밋을 거부한다.
+2. **`.env.example` ↔ `.env.local` 키 동기화**: `.env.example`에 주석 해제 상태로 정의된 필수 키가 `.env.local`에도 존재하는지 확인한다.
+3. **`NEXT_PUBLIC_` 시크릿 유출 감지**: 스테이징된 `.ts`, `.tsx`, `.js`, `.jsx`, `.env` 파일에서 `NEXT_PUBLIC_` + 시크릿 키워드(`SECRET`, `TOKEN`, `PASSWORD`, `PRIVATE_KEY`) 조합을 감지한다.
+
+하나라도 실패하면 커밋이 거부된다. Node를 띄우지 않으므로 docs 수정 같은 가벼운 커밋에도 부담이 없다.
+
+##### predev / prebuild (full 검증 — validate-env.ts)
+
+`npm run dev` / `npm run build` 전에 `scripts/validate-env.ts`가 자동 실행된다. "지금 이 환경이 정상인지" 확인하는 역할이다:
+
+**Step 1 — 필수 키 존재 여부**: `ENV_RULES`에서 `required: true`인 변수가 `.env.local`(또는 `.env`)에 존재하는지 검사한다. 누락 시 `process.exit(1)`.
+
+**Step 2 — 값 형식 검증**: 각 변수의 `validate` 함수를 실행한다. 추가로 `NEXT_PUBLIC_` 접두사가 붙은 시크릿성 변수를 감지하여 유출 경고를 출력한다.
+
+**Step 3 — DB 연결 테스트**: `@prisma/client`를 dynamic import하여 `SELECT 1` 쿼리를 실행한다. 5초 타임아웃이 적용되며, `--skip-db` 옵션으로 건너뛸 수 있다.
+
+DB 연결 테스트를 런타임 직전에 하는 이유: 커밋 시점에 DB가 연결되더라도, 이후 Supabase가 일시정지되거나 네트워크 환경이 달라질 수 있다. 실행 직전에 확인해야 "지금 된다"는 보장이 된다.
+
+##### npm 스크립트
+
+```json
+{
+  "predev": "npx tsx scripts/validate-env.ts",
+  "prebuild": "npx tsx scripts/validate-env.ts",
+  "validate-env": "npx tsx scripts/validate-env.ts",
+  "validate-env:skip-db": "npx tsx scripts/validate-env.ts --skip-db"
+}
+```
+
+#### 규칙 4: 환경 변수 접근은 `src/lib/env.ts` 한 곳에서만
 
 코드 전체에서 `process.env.XXX`를 직접 사용하지 않는다. 반드시 `env.ts`에서 export한 값을 import하여 사용한다.
 
@@ -180,14 +214,15 @@ const db = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
 
 이점: 오타를 TypeScript 컴파일 타임에 잡을 수 있고, 어떤 변수가 어디서 쓰이는지 `env.ts`만 보면 파악할 수 있다.
 
-#### 규칙 4: 변수 추가 시 체크리스트
+#### 규칙 5: 변수 추가 시 체크리스트
 
-새로운 환경 변수를 추가할 때 아래 4곳을 한 세트로 업데이트한다. 하나라도 빠지면 본인 또는 미래의 협업자가 혼란을 겪는다.
+새로운 환경 변수를 추가할 때 아래 3곳을 한 세트로 업데이트한다:
 
-1. `src/lib/env.ts` — 검증 로직 추가
+1. `src/lib/envRules.ts` — `ENV_RULES` 배열에 규칙 추가 (→ `env.ts`와 `validate-env.ts`에 자동 반영)
 2. `.env.example` — 키 추가 (값은 비워두거나 예시 형식만 기재)
 3. `.env.local` — 실제 값 추가 (로컬 개발용)
-4. 위 환경 변수 목록 테이블 — Phase, 환경, 설명 기재
+
+Phase가 진행되어 선택→필수로 바뀔 때는 `envRules.ts`에서 `required: false` → `true`로 변경하고, `env.ts`에서 해당 변수의 주석을 해제하면 된다.
 
 ### 주의사항
 
@@ -212,7 +247,7 @@ NEXT_PUBLIC_CLOUDINARY_API_SECRET=abcDEF...  ← ❌ 절대 금지 — 시크릿
 
 ### 적용 시점
 
-- Phase 1: `src/lib/env.ts` 생성, `DATABASE_URL` 검증, `.env.example` 작성
+- Phase 1: `src/lib/envRules.ts` + `env.ts` 생성, `DATABASE_URL` 검증, `.env.example` 작성
 - Phase 3: Cloudinary, Upstash 변수 추가 및 필수 전환
 - Phase 4: NextAuth, OAuth 변수 추가 및 필수 전환
 

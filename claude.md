@@ -441,7 +441,19 @@ src/
 
 - **`process.env` 직접 접근 금지.** 반드시 `src/lib/env.ts`에서 export한 값을 import하여 사용한다.
 - **`NEXT_PUBLIC_` 접두사는 시크릿에 절대 붙이지 않는다.** 이 접두사가 붙으면 빌드 시 브라우저 번들에 인라인되어 누구나 볼 수 있다.
-- **환경 변수 추가 시 4곳을 한 세트로 업데이트한다:** `src/lib/env.ts` → `.env.example` → `.env.local` → `PROJECT_RULES.md` 변수 목록 테이블
+- **환경 변수 추가 시 5곳을 한 세트로 업데이트한다:** `src/lib/env.ts` → `scripts/validate-env.ts`의 `ENV_RULES` → `.env.example` → `.env.local` → `PROJECT_RULES.md` 변수 목록 테이블
+
+### 환경 변수 검증 타이밍
+
+환경 변수는 **두 시점**에 자동 검증된다:
+
+1. **Git 커밋 전 (pre-commit hook)**: `validate-env.ts --mode=quick` — 필수 키 존재 여부만 빠르게 검증. 누락 시 커밋 거부.
+2. **`npm run dev` / `npm run build` 전 (predev/prebuild)**: `validate-env.ts` full 모드 — 키 존재 + 값 형식 검증 + DB 연결 테스트. 실패 시 앱 시작 차단.
+
+수동 실행:
+- `npm run validate-env` — full 모드 (키 + 형식 + DB)
+- `npm run validate-env:quick` — quick 모드 (키만)
+- `npm run validate-env:skip-db` — full 모드에서 DB 연결만 건너뜀
 
 > 변수 목록, 환경 파일 구분, 검증 로직 패턴, 유출 대응 절차 등 상세 규칙은 **[PROJECT_RULES.md > 2. 환경 변수 관리](./PROJECT_RULES.md#2-환경-변수-관리)** 를 참고한다.
 
