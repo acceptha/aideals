@@ -10,11 +10,8 @@ datasource db {
 model Category {
   id        String       @id @default(cuid())
   name      String
-  parentId  String?      @map("parent_id")
   iconUrl   String?      @map("icon_url")
   sortOrder Int          @default(0) @map("sort_order")
-  parent    Category?    @relation("CategoryTree", fields: [parentId], references: [id])
-  children  Category[]   @relation("CategoryTree")
   styles    CelebStyle[]
 
   @@map("categories")
@@ -25,7 +22,7 @@ model CelebStyle {
   celebName  String           @map("celeb_name")
   imageUrl   String           @map("image_url")
   categoryId String           @map("category_id")
-  tags       String[]
+  colors     String[]
   gender     String
   season     String
   createdAt  DateTime         @default(now()) @map("created_at")

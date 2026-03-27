@@ -8,12 +8,12 @@
 ## CategoryGrid
 
 - 카테고리 아이콘을 그리드로 표시
-- 모바일: 3열, 데스크톱: 사이드바 + 4열
-- 대분류 선택 시 소분류 펼침(드릴다운)
+- 모바일: 3열, 데스크톱: 6열
+- 대분류 6개 클릭 시 `/styles?categoryId=`로 이동
 
 ## StyleCard
 
-- 셀럽 착용 사진 + 이름 + 태그 배지
+- 셀럽 착용 사진 + 이름 + 색상 배지
 - next/image 사용, lazy loading 필수
 - 클릭 시 `/styles/[id]`로 이동
 
@@ -31,6 +31,6 @@
 
 ## FilterBar
 
-- 성별(남/여/공용), 시즌(봄/여름/가을/겨울), 스타일 태그 다중 선택
+- 성별(남/여) 단일 선택(선택 해제 시 전체), 색상 다중 선택
 - Zustand `useFilterStore`와 연동
 - URL 쿼리 파라미터와 동기화 (`useSearchParams`)
