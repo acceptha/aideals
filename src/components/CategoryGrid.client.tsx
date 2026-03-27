@@ -8,12 +8,12 @@ interface CategoryGridClientProps {
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
-  "cat-outer": "🧥",
-  "cat-top": "👕",
-  "cat-bottom": "👖",
-  "cat-dress": "👗",
-  "cat-shoes": "👟",
-  "cat-bag": "👜",
+  "seed-cat-outer": "🧥",
+  "seed-cat-top": "👕",
+  "seed-cat-bottom": "👖",
+  "seed-cat-dress": "👗",
+  "seed-cat-shoes": "👟",
+  "seed-cat-bag": "👜",
 };
 
 export const CategoryGridClient = ({ categories }: CategoryGridClientProps) => {
