@@ -1,14 +1,22 @@
 // src/app/styles/[id]/page.tsx — 스타일 상세 → 유사 상품 비교
 
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
+import { PriceFilter } from "@/components/PriceFilter.client";
 import { ProductCompareCard } from "@/components/ProductCompareCard";
+import { ProductSortBar } from "@/components/ProductSortBar.client";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
 interface StyleDetailPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{
+    sort?: string;
+    priceRange?: string;
+  }>;
 }
 
 const GENDER_LABEL: Record<string, string> = {
@@ -29,8 +37,11 @@ function formatPrice(price: number): string {
   return price.toLocaleString("ko-KR") + "원";
 }
 
-export default async function StyleDetailPage({ params }: StyleDetailPageProps) {
+export default async function StyleDetailPage({ params, searchParams }: StyleDetailPageProps) {
   const { id } = await params;
+  const query = await searchParams;
+  const sort = query.sort ?? "similarity";
+  const priceRange = query.priceRange ?? null;
 
   const style = await prisma.celebStyle.findUnique({
     where: { id },
@@ -49,9 +60,32 @@ export default async function StyleDetailPage({ params }: StyleDetailPageProps) 
     notFound();
   }
 
+  // 가격대 필터 조건
+  const productWhere: Prisma.SimilarProductWhereInput = { styleId: id };
+  if (priceRange) {
+    const [minStr, maxStr] = priceRange.split("-");
+    const min = minStr ? parseInt(minStr, 10) : undefined;
+    const max = maxStr ? parseInt(maxStr, 10) : undefined;
+    if (min !== undefined || max !== undefined) {
+      productWhere.representativePrice = {
+        ...(min !== undefined && { gte: min }),
+        ...(max !== undefined && { lte: max }),
+      };
+    }
+  }
+
+  // 정렬 조건
+  const orderByMap: Record<string, Prisma.SimilarProductOrderByWithRelationInput> = {
+    similarity: { similarityScore: "desc" },
+    price_asc: { representativePrice: "asc" },
+    price_desc: { representativePrice: "desc" },
+    brand: { brandName: "asc" },
+  };
+  const orderBy = orderByMap[sort] ?? orderByMap.similarity;
+
   const products = await prisma.similarProduct.findMany({
-    where: { styleId: id },
-    orderBy: { similarityScore: "desc" },
+    where: productWhere,
+    orderBy,
     select: {
       id: true,
       styleId: true,
@@ -105,10 +139,28 @@ export default async function StyleDetailPage({ params }: StyleDetailPageProps) 
           <span className="text-sm text-gray-500">{products.length}개</span>
         </div>
 
+        {/* 가격대 필터 + 정렬 */}
+        <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-14 shrink-0 text-xs font-semibold text-gray-500">가격대</span>
+            <Suspense>
+              <PriceFilter currentRange={priceRange} />
+            </Suspense>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-14 shrink-0 text-xs font-semibold text-gray-500">정렬</span>
+            <Suspense>
+              <ProductSortBar currentSort={sort} />
+            </Suspense>
+          </div>
+        </div>
+
         {products.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-16 text-gray-400">
             <span className="text-4xl">👕</span>
-            <p className="text-sm">유사 상품이 아직 등록되지 않았어요</p>
+            <p className="text-sm">
+              {priceRange ? "해당 가격대의 상품이 없어요" : "유사 상품이 아직 등록되지 않았어요"}
+            </p>
           </div>
         ) : (
           <>
