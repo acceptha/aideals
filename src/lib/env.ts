@@ -46,10 +46,10 @@ export const env = {
   DATABASE_URL: _env.DATABASE_URL as string,
 
   // ──────────────────────────────────────────────
-  // Phase 3 — 선택 (해당 Phase에서 required: true로 바꾸면 as string으로 변경)
+  // Phase 3 — Redis 선택 (없으면 캐시 스킵), Cloudinary 선택
   // ──────────────────────────────────────────────
-  // UPSTASH_REDIS_REST_URL: _env.UPSTASH_REDIS_REST_URL,
-  // UPSTASH_REDIS_REST_TOKEN: _env.UPSTASH_REDIS_REST_TOKEN,
+  UPSTASH_REDIS_REST_URL: _env.UPSTASH_REDIS_REST_URL,
+  UPSTASH_REDIS_REST_TOKEN: _env.UPSTASH_REDIS_REST_TOKEN,
   // NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: _env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
   // CLOUDINARY_API_KEY: _env.CLOUDINARY_API_KEY,
   // CLOUDINARY_API_SECRET: _env.CLOUDINARY_API_SECRET,

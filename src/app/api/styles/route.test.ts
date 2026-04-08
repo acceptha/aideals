@@ -2,10 +2,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    celebStyle: { findMany: vi.fn(), count: vi.fn() },
-  },
+const mockGetStylesWithCount = vi.fn();
+
+vi.mock("@/lib/data/styles", () => ({
+  getStylesWithCount: (...args: unknown[]) => mockGetStylesWithCount(...args),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -13,7 +13,6 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { GET } from "./route";
-import { prisma } from "@/lib/prisma";
 
 const mockCtx = { params: Promise.resolve({}) };
 
@@ -36,8 +35,7 @@ describe("GET /api/styles", () => {
 
   it("필터 없이 요청하면 스타일 목록을 페이지네이션과 함께 반환한다", async () => {
     const styles = createStyles(3);
-    vi.mocked(prisma.celebStyle.findMany).mockResolvedValue(styles as never);
-    vi.mocked(prisma.celebStyle.count).mockResolvedValue(3);
+    mockGetStylesWithCount.mockResolvedValue([styles, 3]);
 
     const req = new NextRequest("http://localhost:3000/api/styles");
     const res = await GET(req, mockCtx);
@@ -49,51 +47,44 @@ describe("GET /api/styles", () => {
   });
 
   it("categoryId로 필터할 수 있다", async () => {
-    vi.mocked(prisma.celebStyle.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.celebStyle.count).mockResolvedValue(0);
+    mockGetStylesWithCount.mockResolvedValue([[], 0]);
 
     const req = new NextRequest("http://localhost:3000/api/styles?categoryId=seed-cat-top");
     await GET(req, mockCtx);
 
-    expect(prisma.celebStyle.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ categoryId: "seed-cat-top" }),
-      }),
+    expect(mockGetStylesWithCount).toHaveBeenCalledWith(
+      expect.objectContaining({ categoryId: "seed-cat-top" }),
     );
   });
 
-  it("gender=male로 필터하면 where에 gender가 포함된다", async () => {
-    vi.mocked(prisma.celebStyle.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.celebStyle.count).mockResolvedValue(0);
+  it("gender=male로 필터하면 getStylesWithCount에 gender가 전달된다", async () => {
+    mockGetStylesWithCount.mockResolvedValue([[], 0]);
 
     const req = new NextRequest("http://localhost:3000/api/styles?gender=male");
     await GET(req, mockCtx);
 
-    expect(prisma.celebStyle.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ gender: "male" }),
-      }),
+    expect(mockGetStylesWithCount).toHaveBeenCalledWith(
+      expect.objectContaining({ gender: "male" }),
     );
   });
 
   it("sort=celebName_asc면 celebName 오름차순으로 정렬한다", async () => {
-    vi.mocked(prisma.celebStyle.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.celebStyle.count).mockResolvedValue(0);
+    const styles = [
+      { ...createStyles(1)[0], celebName: "홍길동" },
+      { ...createStyles(1)[0], id: "style-2", celebName: "가나다" },
+    ];
+    mockGetStylesWithCount.mockResolvedValue([styles, 2]);
 
     const req = new NextRequest("http://localhost:3000/api/styles?sort=celebName_asc");
-    await GET(req, mockCtx);
+    const res = await GET(req, mockCtx);
+    const body = await res.json();
 
-    expect(prisma.celebStyle.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        orderBy: [{ celebName: "asc" }],
-      }),
-    );
+    expect(body.data[0].celebName).toBe("가나다");
   });
 
   it("page와 limit 파라미터로 페이지네이션을 적용할 수 있다", async () => {
-    const styles = createStyles(5);
-    vi.mocked(prisma.celebStyle.findMany).mockResolvedValue(styles as never);
-    vi.mocked(prisma.celebStyle.count).mockResolvedValue(25);
+    const styles = createStyles(25);
+    mockGetStylesWithCount.mockResolvedValue([styles, 25]);
 
     const req = new NextRequest("http://localhost:3000/api/styles?page=2&limit=5");
     const res = await GET(req, mockCtx);

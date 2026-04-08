@@ -3,7 +3,7 @@
 > 이 문서는 `claude.md`(코딩 컨벤션/디자인 패턴)를 **보완**하는 프로젝트 운영 규칙이다. Git 커밋 규칙도 이 문서의 섹션 3에 통합되어 있다.
 > 각 규칙은 독립적으로 읽고 수정할 수 있도록 작성되었다.
 >
-> **프로젝트 요약:** aideals는 패션 비교 플랫폼(Next.js 14 App Router + TypeScript + TailwindCSS + Prisma + PostgreSQL)이다.
+> **프로젝트 요약:** aideals는 패션 비교 플랫폼(Next.js 15 App Router + TypeScript + TailwindCSS + Prisma + PostgreSQL)이다.
 > 핵심 플로우: 카테고리 선택 → 셀럽 스타일 탐색 → 유사 상품 비교 → 구매처 확인
 
 ---
@@ -80,10 +80,6 @@ describe("GET /api/styles", () => {
 
 전체 커버리지를 추구하지 않는다. 깨지면 치명적인 부분(크롤러 파싱, API 핸들러)에 집중한다.
 
-### 커밋 전 테스트 검증
-
-커밋 전에 `npx vitest run`을 실행하여 테스트를 검증한다. 테스트 실패 시 커밋하지 않는다. 테스트 파일이 없는 초기 단계에서는 테스트 단계를 자동으로 건너뜌다.
-
 ### 정적 분석
 
 Claude Code의 PostToolUse hook(`.claude/hooks/lint-check.mjs`)이 파일 편집마다 ESLint + TypeScript 타입 체크를 자동 실행한다. 별도 설정 없이 정적 분석 계층이 확보된다.
@@ -94,7 +90,7 @@ GitHub Actions에서 PR마다 `vitest run`을 실행한다. 테스트 실패 시
 
 ### 적용 시점
 
-- Phase 1: `vitest` 설치 및 설정 파일(`vitest.config.ts`) 생성, 커밋 전 테스트 검증 적용
+- Phase 1: `vitest` 설치 및 설정 파일(`vitest.config.ts`) 생성
 - Phase 2: API Route 핸들러 테스트 필수 작성 시작
 - Phase 3: 크롤러 모듈 테스트 필수 작성
 
@@ -651,56 +647,13 @@ export interface ApiErrorResponse {
 }
 ```
 
-### 프론트엔드 에러 핸들링 유틸
-
-API를 호출하는 클라이언트 코드마다 `fetch` → `response.json()` → 타입 캐스팅을 반복하지 않도록, 공통 fetch 래퍼를 제공한다. 이 래퍼는 응답이 에러인 경우 `ApiErrorResponse` 타입으로 자동 변환하여 throw한다.
-
-```typescript
-// src/lib/api/fetchApi.ts
-import type { ApiErrorResponse } from "@/types/api";
-
-export async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, options);
-
-  if (!res.ok) {
-    const error: ApiErrorResponse = await res.json();
-    throw error; // 호출부에서 error.code로 분기 가능
-  }
-
-  return res.json();
-}
-```
-
-프론트엔드 활용 예시:
-
-```typescript
-import { fetchApi } from "@/lib/api/fetchApi";
-import { ERROR_CODES } from "@/lib/api/errorCodes";
-import type { ApiErrorResponse } from "@/types/api";
-
-try {
-  const data = await fetchApi<StyleListResponse>("/api/styles?gender=male");
-} catch (err) {
-  const error = err as ApiErrorResponse;
-
-  if (error.code === ERROR_CODES.STYLE_NOT_FOUND) {
-    // "해당 스타일이 삭제되었거나 존재하지 않습니다" UI 표시
-  } else if (error.code === ERROR_CODES.INVALID_FILTER_VALUE) {
-    // details.field로 어떤 필드가 잘못됐는지 표시
-  } else if (error.code === ERROR_CODES.PRICE_DATA_STALE) {
-    // "가격 정보가 최신이 아닐 수 있습니다" 경고 배너 표시
-  }
-}
-```
-
 ### 파일 구조
 
 ```
 src/lib/api/
 ├── errorCodes.ts       ← ERROR_CODES 상수, ErrorCode 타입, ERROR_STATUS_MAP
 ├── errors.ts           ← AppError, NotFoundError, ValidationError 클래스
-├── withErrorHandler.ts ← 에러 핸들러 래퍼 (code, details 포함 응답)
-└── fetchApi.ts         ← 프론트엔드 fetch 래퍼 (Phase 2에서 구현)
+└── withErrorHandler.ts ← 에러 핸들러 래퍼 (code, details 포함 응답)
 
 src/types/
 └── api.ts              ← ApiErrorResponse 인터페이스
@@ -709,7 +662,7 @@ src/types/
 ### 적용 시점
 
 - Phase 1: `errorCodes.ts` 생성 (ERROR_CODES, ERROR_STATUS_MAP), `errors.ts`에 `code`/`details` 필드 추가, `ApiErrorResponse` 타입 정의
-- Phase 2: API Route 개발 시 모든 에러에 코드 부여, `fetchApi.ts` 구현, `withErrorHandler`에 `code`/`details` 응답 적용
+- Phase 2: API Route 개발 시 모든 에러에 코드 부여, `withErrorHandler`에 `code`/`details` 응답 적용
 - Phase 3: 크롤러 관련 에러 코드 활성화, `details`에 크롤러 컨텍스트 포함
 - Phase 4: Auth 에러 코드 주석 해제 및 활성화
 
@@ -738,9 +691,8 @@ prisma/
 
 | 모델 | 최소 수량 | 설명 |
 |------|----------|------|
-| Category (대분류) | 6개 | 아우터, 상의, 하의, 원피스, 신발, 악세서리 |
-| Category (소분류) | 대분류당 3~5개 | 예: 아우터 → 블레이저, 패딩, 코트, 가디건, 점퍼 |
-| CelebStyle | 카테고리(소분류)당 3~5개 | 성별/시즌이 골고루 분포되도록 |
+| Category (대분류) | 6개 | 아우터, 상의, 하의, 원피스/스커트, 신발, 가방 |
+| CelebStyle | 카테고리당 3~5개 | 성별/시즌이 골고루 분포되도록 |
 | SimilarProduct | 스타일당 2~4개 | 브랜드, 가격대가 다양하도록 |
 | PurchaseLink | 상품당 2~3개 | 플랫폼이 겹치지 않도록 (무신사, 29CM, 쿠팡 등) |
 
@@ -766,7 +718,7 @@ npx ts-node prisma/seed.ts
 ```json
 {
   "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "npx tsx prisma/seed.ts"
   }
 }
 ```

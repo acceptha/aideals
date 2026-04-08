@@ -8,8 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { PriceFilter } from "@/components/PriceFilter.client";
 import { ProductCompareCard } from "@/components/ProductCompareCard";
 import { ProductSortBar } from "@/components/ProductSortBar.client";
-import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
+import { getStyleById, getStyleProducts } from "@/lib/data/styles";
 
 interface StyleDetailPageProps {
   params: Promise<{ id: string }>;
@@ -43,60 +42,20 @@ export default async function StyleDetailPage({ params, searchParams }: StyleDet
   const sort = query.sort ?? "similarity";
   const priceRange = query.priceRange ?? null;
 
-  const style = await prisma.celebStyle.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      celebName: true,
-      imageUrl: true,
-      categoryId: true,
-      colors: true,
-      gender: true,
-      season: true,
-    },
-  });
-
+  const style = await getStyleById(id);
   if (!style) {
     notFound();
   }
 
-  // 가격대 필터 조건
-  const productWhere: Prisma.SimilarProductWhereInput = { styleId: id };
+  let minPrice: number | undefined;
+  let maxPrice: number | undefined;
   if (priceRange) {
     const [minStr, maxStr] = priceRange.split("-");
-    const min = minStr ? parseInt(minStr, 10) : undefined;
-    const max = maxStr ? parseInt(maxStr, 10) : undefined;
-    if (min !== undefined || max !== undefined) {
-      productWhere.representativePrice = {
-        ...(min !== undefined && { gte: min }),
-        ...(max !== undefined && { lte: max }),
-      };
-    }
+    minPrice = minStr ? parseInt(minStr, 10) : undefined;
+    maxPrice = maxStr ? parseInt(maxStr, 10) : undefined;
   }
 
-  // 정렬 조건
-  const orderByMap: Record<string, Prisma.SimilarProductOrderByWithRelationInput> = {
-    similarity: { similarityScore: "desc" },
-    price_asc: { representativePrice: "asc" },
-    price_desc: { representativePrice: "desc" },
-    brand: { brandName: "asc" },
-  };
-  const orderBy = orderByMap[sort] ?? orderByMap.similarity;
-
-  const products = await prisma.similarProduct.findMany({
-    where: productWhere,
-    orderBy,
-    select: {
-      id: true,
-      styleId: true,
-      brandName: true,
-      productName: true,
-      productImageUrl: true,
-      representativePrice: true,
-      similarityScore: true,
-      createdAt: true,
-    },
-  });
+  const products = await getStyleProducts(id, { minPrice, maxPrice, sort });
 
   return (
     <div className="flex flex-col gap-6">

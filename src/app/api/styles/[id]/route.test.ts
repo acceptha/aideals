@@ -2,10 +2,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    celebStyle: { findUnique: vi.fn() },
-  },
+const mockGetStyleById = vi.fn();
+
+vi.mock("@/lib/data/styles", () => ({
+  getStyleById: (...args: unknown[]) => mockGetStyleById(...args),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -13,7 +13,6 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { GET } from "./route";
-import { prisma } from "@/lib/prisma";
 
 const createCtx = (id: string) => ({ params: Promise.resolve({ id }) });
 
@@ -34,7 +33,7 @@ describe("GET /api/styles/:id", () => {
   });
 
   it("스타일 상세 정보를 반환한다", async () => {
-    vi.mocked(prisma.celebStyle.findUnique).mockResolvedValue(mockStyle as never);
+    mockGetStyleById.mockResolvedValue(mockStyle);
 
     const req = new NextRequest("http://localhost:3000/api/styles/style-1");
     const res = await GET(req, createCtx("style-1"));
@@ -46,7 +45,7 @@ describe("GET /api/styles/:id", () => {
   });
 
   it("존재하지 않는 스타일이면 404를 반환한다", async () => {
-    vi.mocked(prisma.celebStyle.findUnique).mockResolvedValue(null);
+    mockGetStyleById.mockResolvedValue(null);
 
     const req = new NextRequest("http://localhost:3000/api/styles/invalid");
     const res = await GET(req, createCtx("invalid"));
@@ -56,21 +55,17 @@ describe("GET /api/styles/:id", () => {
     expect(body.code).toBe("STYLE_NOT_FOUND");
   });
 
-  it("해당 id로 Prisma를 조회한다", async () => {
-    vi.mocked(prisma.celebStyle.findUnique).mockResolvedValue(mockStyle as never);
+  it("해당 id로 getStyleById를 호출한다", async () => {
+    mockGetStyleById.mockResolvedValue(mockStyle);
 
     const req = new NextRequest("http://localhost:3000/api/styles/style-1");
     await GET(req, createCtx("style-1"));
 
-    expect(prisma.celebStyle.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: "style-1" },
-      }),
-    );
+    expect(mockGetStyleById).toHaveBeenCalledWith("style-1");
   });
 
-  it("Prisma 에러 시 500을 반환한다", async () => {
-    vi.mocked(prisma.celebStyle.findUnique).mockRejectedValue(new Error("DB error"));
+  it("데이터 조회 에러 시 500을 반환한다", async () => {
+    mockGetStyleById.mockRejectedValue(new Error("DB error"));
 
     const req = new NextRequest("http://localhost:3000/api/styles/style-1");
     const res = await GET(req, createCtx("style-1"));

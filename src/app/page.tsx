@@ -1,11 +1,8 @@
 import { CategoryGridClient } from "@/components/CategoryGrid.client";
-import { prisma } from "@/lib/prisma";
+import { getCategories } from "@/lib/data/categories";
 
 export default async function HomePage() {
-  const categories = await prisma.category.findMany({
-    orderBy: { sortOrder: "asc" },
-    select: { id: true, name: true, iconUrl: true, sortOrder: true },
-  });
+  const categories = await getCategories();
 
   return (
     <div className="flex flex-col gap-8">

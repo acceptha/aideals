@@ -2,10 +2,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    similarProduct: { findUnique: vi.fn() },
-  },
+const mockGetProductById = vi.fn();
+
+vi.mock("@/lib/data/products", () => ({
+  getProductById: (...args: unknown[]) => mockGetProductById(...args),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -13,7 +13,6 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { GET } from "./route";
-import { prisma } from "@/lib/prisma";
 
 const createCtx = (id: string) => ({ params: Promise.resolve({ id }) });
 
@@ -40,7 +39,7 @@ describe("GET /api/products/:id", () => {
   });
 
   it("상품 상세 정보를 스타일 정보와 함께 반환한다", async () => {
-    vi.mocked(prisma.similarProduct.findUnique).mockResolvedValue(mockProduct as never);
+    mockGetProductById.mockResolvedValue(mockProduct);
 
     const req = new NextRequest("http://localhost:3000/api/products/prod-1");
     const res = await GET(req, createCtx("prod-1"));
@@ -53,7 +52,7 @@ describe("GET /api/products/:id", () => {
   });
 
   it("존재하지 않는 상품이면 404를 반환한다", async () => {
-    vi.mocked(prisma.similarProduct.findUnique).mockResolvedValue(null);
+    mockGetProductById.mockResolvedValue(null);
 
     const req = new NextRequest("http://localhost:3000/api/products/invalid");
     const res = await GET(req, createCtx("invalid"));
@@ -63,24 +62,17 @@ describe("GET /api/products/:id", () => {
     expect(body.code).toBe("PRODUCT_NOT_FOUND");
   });
 
-  it("해당 id로 Prisma를 조회하며 style을 include한다", async () => {
-    vi.mocked(prisma.similarProduct.findUnique).mockResolvedValue(mockProduct as never);
+  it("해당 id로 getProductById를 호출한다", async () => {
+    mockGetProductById.mockResolvedValue(mockProduct);
 
     const req = new NextRequest("http://localhost:3000/api/products/prod-1");
     await GET(req, createCtx("prod-1"));
 
-    expect(prisma.similarProduct.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: "prod-1" },
-        select: expect.objectContaining({
-          style: expect.any(Object),
-        }),
-      }),
-    );
+    expect(mockGetProductById).toHaveBeenCalledWith("prod-1");
   });
 
-  it("Prisma 에러 시 500을 반환한다", async () => {
-    vi.mocked(prisma.similarProduct.findUnique).mockRejectedValue(new Error("DB error"));
+  it("데이터 조회 에러 시 500을 반환한다", async () => {
+    mockGetProductById.mockRejectedValue(new Error("DB error"));
 
     const req = new NextRequest("http://localhost:3000/api/products/prod-1");
     const res = await GET(req, createCtx("prod-1"));

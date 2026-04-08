@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import { FilterBar } from "@/components/FilterBar.client";
 import { Pagination } from "@/components/Pagination.client";
 import { StyleCard } from "@/components/StyleCard";
-import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
+import { getCategoryById } from "@/lib/data/categories";
+import { getStylesWithCount } from "@/lib/data/styles";
 
 const DEFAULT_LIMIT = 12;
 
@@ -16,6 +16,7 @@ interface StylesPageProps {
   }>;
 }
 
+// TODO: api/styles/route.ts와 중복. 순수 유틸 함수가 여러 개 생기면 src/utils/로 추출
 const SEASON_BY_MONTH: Record<number, string[]> = {
   1: ["winter"],
   2: ["winter"],
@@ -39,39 +40,11 @@ export default async function StylesPage({ searchParams }: StylesPageProps) {
   // 카테고리명 조회
   let title = "전체 스타일";
   if (categoryId) {
-    const category = await prisma.category.findUnique({
-      where: { id: categoryId },
-      select: { name: true },
-    });
+    const category = await getCategoryById(categoryId);
     if (category) title = category.name;
   }
 
-  // 필터 조건 구성
-  const where: Prisma.CelebStyleWhereInput = {};
-  if (categoryId) where.categoryId = categoryId;
-  if (gender) where.gender = gender;
-  if (color) {
-    where.colors = { hasSome: color.split(",") };
-  }
-
-  // 총 건수 조회 + 데이터 조회 병렬 실행
-  const [total, allStyles] = await Promise.all([
-    prisma.celebStyle.count({ where }),
-    prisma.celebStyle.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        celebName: true,
-        imageUrl: true,
-        categoryId: true,
-        colors: true,
-        gender: true,
-        season: true,
-        createdAt: true,
-      },
-    }),
-  ]);
+  const [allStyles, total] = await getStylesWithCount({ categoryId, gender, color });
 
   // 시즌 자동 정렬
   const month = new Date().getMonth() + 1;
@@ -83,7 +56,8 @@ export default async function StylesPage({ searchParams }: StylesPageProps) {
     const aWeight = aIdx === -1 ? 99 : aIdx;
     const bWeight = bIdx === -1 ? 99 : bIdx;
     if (aWeight !== bWeight) return aWeight - bWeight;
-    return b.createdAt.getTime() - a.createdAt.getTime();
+    // new Date() 래핑: Redis 캐시 역직렬화 시 Date가 string으로 변환되므로 방어 처리
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   // 페이지네이션 적용

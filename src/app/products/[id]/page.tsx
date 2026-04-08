@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PurchaseLinkList } from "@/components/PurchaseLinkList";
-import { prisma } from "@/lib/prisma";
+import { getProductById, getProductLinks } from "@/lib/data/products";
 
 interface ProductDetailPageProps {
   params: Promise<{ id: string }>;
@@ -17,41 +17,12 @@ function formatPrice(price: number): string {
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { id } = await params;
 
-  const product = await prisma.similarProduct.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      styleId: true,
-      brandName: true,
-      productName: true,
-      productImageUrl: true,
-      representativePrice: true,
-      similarityScore: true,
-      style: {
-        select: { id: true, celebName: true },
-      },
-    },
-  });
-
+  const product = await getProductById(id);
   if (!product) {
     notFound();
   }
 
-  const links = await prisma.purchaseLink.findMany({
-    where: { productId: id },
-    orderBy: { price: "asc" },
-    select: {
-      id: true,
-      productId: true,
-      platformName: true,
-      platformLogoUrl: true,
-      price: true,
-      currency: true,
-      productUrl: true,
-      inStock: true,
-      lastCheckedAt: true,
-    },
-  });
+  const links = await getProductLinks(id, "price");
 
   const scorePercent = Math.round(product.similarityScore * 100);
 

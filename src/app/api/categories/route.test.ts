@@ -2,12 +2,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    category: {
-      findMany: vi.fn(),
-    },
-  },
+const mockGetCategories = vi.fn();
+vi.mock("@/lib/data/categories", () => ({
+  getCategories: (...args: unknown[]) => mockGetCategories(...args),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -15,7 +12,6 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { GET } from "./route";
-import { prisma } from "@/lib/prisma";
 
 const mockCtx = { params: Promise.resolve({}) };
 
@@ -30,7 +26,7 @@ describe("GET /api/categories", () => {
   });
 
   it("카테고리 목록을 반환한다", async () => {
-    vi.mocked(prisma.category.findMany).mockResolvedValue(mockCategories as never);
+    mockGetCategories.mockResolvedValue(mockCategories);
 
     const req = new NextRequest("http://localhost:3000/api/categories");
     const res = await GET(req, mockCtx);
@@ -41,7 +37,7 @@ describe("GET /api/categories", () => {
   });
 
   it("카테고리가 없으면 빈 배열을 반환한다", async () => {
-    vi.mocked(prisma.category.findMany).mockResolvedValue([]);
+    mockGetCategories.mockResolvedValue([]);
 
     const req = new NextRequest("http://localhost:3000/api/categories");
     const res = await GET(req, mockCtx);
@@ -51,21 +47,17 @@ describe("GET /api/categories", () => {
     expect(body).toEqual([]);
   });
 
-  it("sortOrder 기준 오름차순으로 조회한다", async () => {
-    vi.mocked(prisma.category.findMany).mockResolvedValue([]);
+  it("getCategories가 호출된다", async () => {
+    mockGetCategories.mockResolvedValue([]);
 
     const req = new NextRequest("http://localhost:3000/api/categories");
     await GET(req, mockCtx);
 
-    expect(prisma.category.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        orderBy: { sortOrder: "asc" },
-      }),
-    );
+    expect(mockGetCategories).toHaveBeenCalledTimes(1);
   });
 
-  it("Prisma 에러 시 500을 반환한다", async () => {
-    vi.mocked(prisma.category.findMany).mockRejectedValue(new Error("DB error"));
+  it("데이터 조회 에러 시 500을 반환한다", async () => {
+    mockGetCategories.mockRejectedValue(new Error("DB error"));
 
     const req = new NextRequest("http://localhost:3000/api/categories");
     const res = await GET(req, mockCtx);

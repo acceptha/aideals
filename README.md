@@ -12,7 +12,7 @@
 
 | 영역 | 기술 |
 |------|------|
-| 프레임워크 | Next.js 14 (App Router) |
+| 프레임워크 | Next.js 15 (App Router) |
 | 언어 | TypeScript 5 |
 | 스타일링 | TailwindCSS 3 |
 | 상태관리 | Zustand |
@@ -76,6 +76,9 @@ npx prisma generate                       # 클라이언트 재생성
 npx prisma studio                         # DB GUI
 npx prisma db seed                        # 시드 데이터
 
+# 테스트
+npx vitest run                            # 전체 테스트 실행
+
 # 품질
 npm run lint                              # ESLint
 npx tsc --noEmit                          # 타입 체크
@@ -89,9 +92,6 @@ npx tsc --noEmit                          # 타입 체크
 aideals/
 ├── prisma/
 │   └── schema.prisma              # 데이터 모델 정의
-├── public/
-│   ├── icons/                     # 카테고리 아이콘, PWA 아이콘
-│   └── manifest.json              # PWA 매니페스트
 ├── scripts/
 │   └── commit.sh                  # 인터랙티브 스마트 커밋 스크립트
 ├── src/
@@ -102,10 +102,9 @@ aideals/
 │   │   ├── products/              # 상품 상세/구매처
 │   │   └── api/                   # API Routes
 │   ├── components/                # UI 컴포넌트
-│   ├── lib/                       # Prisma, Redis, 크롤러 등
+│   ├── lib/                       # Prisma, Redis, 데이터 계층, 크롤러 등
 │   ├── stores/                    # Zustand 스토어
-│   ├── types/                     # 공유 타입 정의
-│   └── utils/                     # 순수 유틸 함수
+│   └── types/                     # 공유 타입 정의
 ├── .env.example                   # 환경 변수 템플릿
 ├── claude.md                      # Claude Code 가이드
 ├── COMMIT_CONVENTION.md           # 커밋 컨벤션 상세
@@ -136,34 +135,34 @@ aideals/
 
 | 대상 | 저장소 | TTL | 갱신 조건 |
 |------|--------|-----|-----------|
-| 카테고리 트리 | Redis | 24시간 | 관리자 수정 시 무효화 |
-| 셀럽 스타일 목록 | Redis | 6시간 | 신규 등록 시 무효화 |
-| 유사 상품 목록 | Redis | 6시간 | 상품 추가/삭제 시 무효화 |
-| 가격 정보 (PurchaseLink) | Redis | 1~3시간 | 크롤러 재수집 시 갱신 |
-| 정적 페이지 | Next.js ISR | 1시간 | revalidate 설정 |
+| 카테고리 (CATEGORY) | Redis | 24시간 (86400s) | 관리자 수정 시 무효화 |
+| 스타일/상품 목록 (LIST) | Redis | 5분 (300s) | 신규 등록 시 무효화 |
+| 스타일 상세 (STYLE_DETAIL) | Redis | 10분 (600s) | 데이터 변경 시 무효화 |
+| 상품 상세 (PRODUCT_DETAIL) | Redis | 10분 (600s) | 데이터 변경 시 무효화 |
+| 가격 정보 (PRICE) | Redis | 3분 (180s) | 크롤러 재수집 시 갱신 |
 
 ---
 
 ## 개발 로드맵
 
 ### Phase 1 — MVP (2주)
-- [ ] Next.js 프로젝트 초기 설정
-- [ ] Prisma 스키마 정의 및 Supabase 연동
-- [ ] 목(mock) 데이터 시드 작성
-- [ ] CategoryGrid + 홈 페이지
-- [ ] StyleCard + 스타일 목록 페이지
-- [ ] 반응형 레이아웃 완성
+- [x] Next.js 프로젝트 초기 설정
+- [x] Prisma 스키마 정의 및 Supabase 연동
+- [x] 목(mock) 데이터 시드 작성
+- [x] CategoryGrid + 홈 페이지
+- [x] StyleCard + 스타일 목록 페이지
+- [x] 반응형 레이아웃 완성
 
 ### Phase 2 — 핵심 기능 (2주)
-- [ ] API Routes 구현
-- [ ] ProductCompareCard + 스타일 상세 페이지
-- [ ] PurchaseLinkList + 상품 상세 페이지
-- [ ] FilterBar + Zustand + URL 동기화
-- [ ] 통합 검색
+- [x] API Routes 구현
+- [x] ProductCompareCard + 스타일 상세 페이지
+- [x] PurchaseLinkList + 상품 상세 페이지
+- [x] FilterBar + Zustand + URL 동기화
+- [x] 통합 검색
 
 ### Phase 3 — 데이터 확장 (2주)
 - [ ] 가격 크롤러 (Cheerio + Puppeteer)
-- [ ] Upstash Redis 캐싱
+- [x] Upstash Redis 캐싱
 - [ ] Cloudinary 이미지 파이프라인
 - [ ] 관리자 페이지
 

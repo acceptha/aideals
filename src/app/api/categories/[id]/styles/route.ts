@@ -5,20 +5,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { withErrorHandler, type RouteContext } from "@/lib/api/withErrorHandler";
 import { parseQueryParams } from "@/lib/api/parseQueryParams";
 import { NotFoundError } from "@/lib/api/errors";
-import { prisma } from "@/lib/prisma";
+import { getCategoryById } from "@/lib/data/categories";
+import { getStylesWithCount } from "@/lib/data/styles";
 import { logger } from "@/lib/logger";
 import type { GetCategoryStylesParams } from "@/types/api";
-import type { Prisma } from "@prisma/client";
 
 export const GET = withErrorHandler(async (req: NextRequest, ctx: RouteContext) => {
   const start = Date.now();
   const { id } = await ctx.params;
 
-  // 카테고리 존재 확인
-  const category = await prisma.category.findUnique({
-    where: { id },
-    select: { id: true },
-  });
+  const category = await getCategoryById(id);
   if (!category) {
     throw new NotFoundError("카테고리", "CATEGORY_NOT_FOUND");
   }
@@ -30,31 +26,17 @@ export const GET = withErrorHandler(async (req: NextRequest, ctx: RouteContext) 
     limit: { type: "number", default: 20, min: 1, max: 100 },
   });
 
-  const where: Prisma.CelebStyleWhereInput = { categoryId: id };
-  if (params.gender) where.gender = params.gender;
-  if (params.color) {
-    where.colors = { hasSome: params.color.split(",") };
-  }
+  const [styles, total] = await getStylesWithCount({
+    categoryId: id,
+    gender: params.gender,
+    color: params.color,
+  });
 
-  const [styles, total] = await Promise.all([
-    prisma.celebStyle.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip: (params.page - 1) * params.limit,
-      take: params.limit,
-      select: {
-        id: true,
-        celebName: true,
-        imageUrl: true,
-        categoryId: true,
-        colors: true,
-        gender: true,
-        season: true,
-        createdAt: true,
-      },
-    }),
-    prisma.celebStyle.count({ where }),
-  ]);
+  // TODO: 데이터 1000건 이상 시 Prisma skip/take 기반 DB 레벨 페이지네이션으로 전환 필요
+  const paged = styles.slice(
+    (params.page - 1) * params.limit,
+    params.page * params.limit,
+  );
 
   logger.info("카테고리별 스타일 조회", {
     context: "api:categories:styles",
@@ -63,7 +45,7 @@ export const GET = withErrorHandler(async (req: NextRequest, ctx: RouteContext) 
   });
 
   return NextResponse.json({
-    data: styles,
+    data: paged,
     pagination: {
       page: params.page,
       limit: params.limit,

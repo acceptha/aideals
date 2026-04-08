@@ -3,21 +3,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { withErrorHandler } from "@/lib/api/withErrorHandler";
-import { prisma } from "@/lib/prisma";
+import { getCategories } from "@/lib/data/categories";
 import { logger } from "@/lib/logger";
 
 export const GET = withErrorHandler(async (_req: NextRequest) => {
   const start = Date.now();
 
-  const categories = await prisma.category.findMany({
-    orderBy: { sortOrder: "asc" },
-    select: {
-      id: true,
-      name: true,
-      iconUrl: true,
-      sortOrder: true,
-    },
-  });
+  const categories = await getCategories();
 
   logger.info("카테고리 목록 조회", {
     context: "api:categories",

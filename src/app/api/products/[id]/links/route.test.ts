@@ -2,11 +2,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    similarProduct: { findUnique: vi.fn() },
-    purchaseLink: { findMany: vi.fn() },
-  },
+const mockGetProductById = vi.fn();
+const mockGetProductLinks = vi.fn();
+
+vi.mock("@/lib/data/products", () => ({
+  getProductById: (...args: unknown[]) => mockGetProductById(...args),
+  getProductLinks: (...args: unknown[]) => mockGetProductLinks(...args),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -14,7 +15,6 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { GET } from "./route";
-import { prisma } from "@/lib/prisma";
 
 const createCtx = (id: string) => ({ params: Promise.resolve({ id }) });
 
@@ -49,8 +49,8 @@ describe("GET /api/products/:id/links", () => {
   });
 
   it("상품의 구매처 목록을 반환한다", async () => {
-    vi.mocked(prisma.similarProduct.findUnique).mockResolvedValue({ id: "prod-1" } as never);
-    vi.mocked(prisma.purchaseLink.findMany).mockResolvedValue(mockLinks as never);
+    mockGetProductById.mockResolvedValue({ id: "prod-1" });
+    mockGetProductLinks.mockResolvedValue(mockLinks);
 
     const req = new NextRequest("http://localhost:3000/api/products/prod-1/links");
     const res = await GET(req, createCtx("prod-1"));
@@ -62,7 +62,7 @@ describe("GET /api/products/:id/links", () => {
   });
 
   it("존재하지 않는 상품이면 404를 반환한다", async () => {
-    vi.mocked(prisma.similarProduct.findUnique).mockResolvedValue(null);
+    mockGetProductById.mockResolvedValue(null);
 
     const req = new NextRequest("http://localhost:3000/api/products/invalid/links");
     const res = await GET(req, createCtx("invalid"));
@@ -72,36 +72,28 @@ describe("GET /api/products/:id/links", () => {
     expect(body.code).toBe("PRODUCT_NOT_FOUND");
   });
 
-  it("sort=price면 가격 오름차순으로 정렬한다", async () => {
-    vi.mocked(prisma.similarProduct.findUnique).mockResolvedValue({ id: "prod-1" } as never);
-    vi.mocked(prisma.purchaseLink.findMany).mockResolvedValue([]);
+  it("sort=price면 'price' 문자열로 호출한다", async () => {
+    mockGetProductById.mockResolvedValue({ id: "prod-1" });
+    mockGetProductLinks.mockResolvedValue([]);
 
     const req = new NextRequest("http://localhost:3000/api/products/prod-1/links?sort=price");
     await GET(req, createCtx("prod-1"));
 
-    expect(prisma.purchaseLink.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        orderBy: { price: "asc" },
-      }),
-    );
+    expect(mockGetProductLinks).toHaveBeenCalledWith("prod-1", "price");
   });
 
-  it("sort 미지정이면 lastCheckedAt 내림차순으로 정렬한다", async () => {
-    vi.mocked(prisma.similarProduct.findUnique).mockResolvedValue({ id: "prod-1" } as never);
-    vi.mocked(prisma.purchaseLink.findMany).mockResolvedValue([]);
+  it("sort 미지정이면 'recent' 문자열로 호출한다", async () => {
+    mockGetProductById.mockResolvedValue({ id: "prod-1" });
+    mockGetProductLinks.mockResolvedValue([]);
 
     const req = new NextRequest("http://localhost:3000/api/products/prod-1/links");
     await GET(req, createCtx("prod-1"));
 
-    expect(prisma.purchaseLink.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        orderBy: { lastCheckedAt: "desc" },
-      }),
-    );
+    expect(mockGetProductLinks).toHaveBeenCalledWith("prod-1", "recent");
   });
 
   it("잘못된 sort 값이면 400을 반환한다", async () => {
-    vi.mocked(prisma.similarProduct.findUnique).mockResolvedValue({ id: "prod-1" } as never);
+    mockGetProductById.mockResolvedValue({ id: "prod-1" });
 
     const req = new NextRequest("http://localhost:3000/api/products/prod-1/links?sort=invalid");
     const res = await GET(req, createCtx("prod-1"));

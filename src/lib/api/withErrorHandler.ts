@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { AppError } from "./errors";
+import { logger } from "../logger";
 
 export interface RouteContext {
   params: Promise<Record<string, string>>;
@@ -33,7 +34,10 @@ export const withErrorHandler =
         );
       }
 
-      console.error("[withErrorHandler] 예상치 못한 에러:", err);
+      logger.error("예상치 못한 에러", {
+        context: "withErrorHandler",
+        data: { error: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? err.stack : undefined },
+      });
       return NextResponse.json(
         {
           status: 500,

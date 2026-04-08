@@ -2,11 +2,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    category: { findUnique: vi.fn() },
-    celebStyle: { findMany: vi.fn(), count: vi.fn() },
-  },
+const mockGetCategoryById = vi.fn();
+const mockGetStylesWithCount = vi.fn();
+
+vi.mock("@/lib/data/categories", () => ({
+  getCategoryById: (...args: unknown[]) => mockGetCategoryById(...args),
+}));
+
+vi.mock("@/lib/data/styles", () => ({
+  getStylesWithCount: (...args: unknown[]) => mockGetStylesWithCount(...args),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -14,7 +18,6 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 import { GET } from "./route";
-import { prisma } from "@/lib/prisma";
 
 const createCtx = (id: string) => ({ params: Promise.resolve({ id }) });
 
@@ -37,9 +40,8 @@ describe("GET /api/categories/:id/styles", () => {
   });
 
   it("카테고리의 스타일 목록을 페이지네이션과 함께 반환한다", async () => {
-    vi.mocked(prisma.category.findUnique).mockResolvedValue({ id: "seed-cat-outer" } as never);
-    vi.mocked(prisma.celebStyle.findMany).mockResolvedValue(mockStyles as never);
-    vi.mocked(prisma.celebStyle.count).mockResolvedValue(1);
+    mockGetCategoryById.mockResolvedValue({ id: "seed-cat-outer", name: "아우터" });
+    mockGetStylesWithCount.mockResolvedValue([mockStyles, 1]);
 
     const req = new NextRequest("http://localhost:3000/api/categories/seed-cat-outer/styles");
     const res = await GET(req, createCtx("seed-cat-outer"));
@@ -56,7 +58,7 @@ describe("GET /api/categories/:id/styles", () => {
   });
 
   it("존재하지 않는 카테고리면 404를 반환한다", async () => {
-    vi.mocked(prisma.category.findUnique).mockResolvedValue(null);
+    mockGetCategoryById.mockResolvedValue(null);
 
     const req = new NextRequest("http://localhost:3000/api/categories/invalid/styles");
     const res = await GET(req, createCtx("invalid"));
@@ -67,39 +69,31 @@ describe("GET /api/categories/:id/styles", () => {
   });
 
   it("gender 필터를 적용할 수 있다", async () => {
-    vi.mocked(prisma.category.findUnique).mockResolvedValue({ id: "seed-cat-outer" } as never);
-    vi.mocked(prisma.celebStyle.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.celebStyle.count).mockResolvedValue(0);
+    mockGetCategoryById.mockResolvedValue({ id: "seed-cat-outer", name: "아우터" });
+    mockGetStylesWithCount.mockResolvedValue([[], 0]);
 
     const req = new NextRequest("http://localhost:3000/api/categories/seed-cat-outer/styles?gender=male");
     await GET(req, createCtx("seed-cat-outer"));
 
-    expect(prisma.celebStyle.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ gender: "male" }),
-      }),
+    expect(mockGetStylesWithCount).toHaveBeenCalledWith(
+      expect.objectContaining({ gender: "male" }),
     );
   });
 
   it("color 필터를 적용할 수 있다", async () => {
-    vi.mocked(prisma.category.findUnique).mockResolvedValue({ id: "seed-cat-outer" } as never);
-    vi.mocked(prisma.celebStyle.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.celebStyle.count).mockResolvedValue(0);
+    mockGetCategoryById.mockResolvedValue({ id: "seed-cat-outer", name: "아우터" });
+    mockGetStylesWithCount.mockResolvedValue([[], 0]);
 
     const req = new NextRequest("http://localhost:3000/api/categories/seed-cat-outer/styles?color=black,white");
     await GET(req, createCtx("seed-cat-outer"));
 
-    expect(prisma.celebStyle.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          colors: { hasSome: ["black", "white"] },
-        }),
-      }),
+    expect(mockGetStylesWithCount).toHaveBeenCalledWith(
+      expect.objectContaining({ color: "black,white" }),
     );
   });
 
   it("잘못된 gender 값이면 400을 반환한다", async () => {
-    vi.mocked(prisma.category.findUnique).mockResolvedValue({ id: "seed-cat-outer" } as never);
+    mockGetCategoryById.mockResolvedValue({ id: "seed-cat-outer", name: "아우터" });
 
     const req = new NextRequest("http://localhost:3000/api/categories/seed-cat-outer/styles?gender=invalid");
     const res = await GET(req, createCtx("seed-cat-outer"));

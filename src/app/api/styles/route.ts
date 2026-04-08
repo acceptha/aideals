@@ -4,11 +4,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withErrorHandler } from "@/lib/api/withErrorHandler";
 import { parseQueryParams } from "@/lib/api/parseQueryParams";
-import { prisma } from "@/lib/prisma";
+import { getStylesWithCount } from "@/lib/data/styles";
 import { logger } from "@/lib/logger";
 import type { GetStylesParams } from "@/types/api";
-import type { Prisma } from "@prisma/client";
 
+// TODO: page.tsx와 중복. 순수 유틸 함수가 여러 개 생기면 src/utils/로 추출
 const SEASON_BY_MONTH: Record<number, string[]> = {
   1: ["winter"],
   2: ["winter"],
@@ -24,17 +24,6 @@ const SEASON_BY_MONTH: Record<number, string[]> = {
   12: ["winter", "fall"],
 };
 
-function getSeasonOrderBy(): Prisma.CelebStyleOrderByWithRelationInput[] {
-  const month = new Date().getMonth() + 1;
-  const prioritySeasons = SEASON_BY_MONTH[month] ?? [];
-
-  // Prisma에서는 SQL CASE로 시즌 가중치 정렬이 불가하므로
-  // createdAt desc를 기본으로 하되, 시즌 정렬은 애플리케이션 레벨에서 처리
-  // → 전체 조회 후 정렬 (데이터 규모가 작은 Phase 1에서 적합)
-  void prioritySeasons;
-  return [{ createdAt: "desc" }];
-}
-
 export const GET = withErrorHandler(async (req: NextRequest) => {
   const start = Date.now();
 
@@ -47,41 +36,17 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
     sort: { type: "string", enum: ["createdAt_desc", "celebName_asc"] },
   });
 
-  const where: Prisma.CelebStyleWhereInput = {};
-  if (params.categoryId) where.categoryId = params.categoryId;
-  if (params.gender) where.gender = params.gender;
-  if (params.color) {
-    where.colors = { hasSome: params.color.split(",") };
-  }
-
-  let orderBy: Prisma.CelebStyleOrderByWithRelationInput[];
-  if (params.sort === "celebName_asc") {
-    orderBy = [{ celebName: "asc" }];
-  } else {
-    orderBy = getSeasonOrderBy();
-  }
-
-  const [allStyles, total] = await Promise.all([
-    prisma.celebStyle.findMany({
-      where,
-      orderBy,
-      select: {
-        id: true,
-        celebName: true,
-        imageUrl: true,
-        categoryId: true,
-        colors: true,
-        gender: true,
-        season: true,
-        createdAt: true,
-      },
-    }),
-    prisma.celebStyle.count({ where }),
-  ]);
+  const [allStyles, total] = await getStylesWithCount({
+    categoryId: params.categoryId,
+    gender: params.gender,
+    color: params.color,
+  });
 
   // 시즌 자동 정렬 (기본 정렬일 때만)
   let sorted = allStyles;
-  if (!params.sort || params.sort === "createdAt_desc") {
+  if (params.sort === "celebName_asc") {
+    sorted = [...allStyles].sort((a, b) => a.celebName.localeCompare(b.celebName));
+  } else {
     const month = new Date().getMonth() + 1;
     const prioritySeasons = SEASON_BY_MONTH[month] ?? [];
 
@@ -91,7 +56,8 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
       const aWeight = aIdx === -1 ? 99 : aIdx;
       const bWeight = bIdx === -1 ? 99 : bIdx;
       if (aWeight !== bWeight) return aWeight - bWeight;
-      return b.createdAt.getTime() - a.createdAt.getTime();
+      // new Date() 래핑: Redis 캐시 역직렬화 시 Date가 string으로 변환되므로 방어 처리
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }
 
