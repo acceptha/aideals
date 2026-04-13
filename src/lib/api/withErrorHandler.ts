@@ -23,6 +23,18 @@ export const withErrorHandler =
       return await handler(req, ctx);
     } catch (err) {
       if (err instanceof AppError) {
+        if (err.statusCode >= 500) {
+          logger.error(err.message, {
+            context: "withErrorHandler",
+            data: { code: err.code, details: err.details },
+          });
+        } else {
+          logger.warn(err.message, {
+            context: "withErrorHandler",
+            data: { code: err.code, details: err.details },
+          });
+        }
+
         return NextResponse.json(
           {
             status: err.statusCode,

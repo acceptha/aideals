@@ -36,5 +36,5 @@ export const GET = withErrorHandler(async (req: NextRequest, ctx: RouteContext) 
     data: { styleId: id, count: products.length },
   });
 
-  return NextResponse.json(products);
+  return NextResponse.json({ data: products });
 });

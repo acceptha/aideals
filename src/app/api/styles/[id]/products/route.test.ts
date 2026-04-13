@@ -55,8 +55,8 @@ describe("GET /api/styles/:id/products", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toHaveLength(2);
-    expect(body[0].brandName).toBe("ZARA");
+    expect(body.data).toHaveLength(2);
+    expect(body.data[0].brandName).toBe("ZARA");
   });
 
   it("존재하지 않는 스타일이면 404를 반환한다", async () => {

@@ -37,8 +37,8 @@ describe("GET /api/search", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body.celebStyles).toHaveLength(1);
-    expect(body.products).toHaveLength(1);
+    expect(body.data.celebStyles).toHaveLength(1);
+    expect(body.data.products).toHaveLength(1);
   });
 
   it("q 파라미터가 없으면 400을 반환한다", async () => {
@@ -58,8 +58,8 @@ describe("GET /api/search", () => {
 
     expect(res.status).toBe(200);
     expect(mockSearchAll).toHaveBeenCalledWith("아이유", "celeb");
-    expect(body.celebStyles).toHaveLength(1);
-    expect(body.products).toEqual([]);
+    expect(body.data.celebStyles).toHaveLength(1);
+    expect(body.data.products).toEqual([]);
   });
 
   it("type=brand이면 brand 타입으로 searchAll을 호출한다", async () => {
@@ -71,7 +71,7 @@ describe("GET /api/search", () => {
 
     expect(res.status).toBe(200);
     expect(mockSearchAll).toHaveBeenCalledWith("ZARA", "brand");
-    expect(body.products).toHaveLength(1);
+    expect(body.data.products).toHaveLength(1);
   });
 
   it("type=product이면 product 타입으로 searchAll을 호출한다", async () => {
@@ -102,7 +102,7 @@ describe("GET /api/search", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body.celebStyles).toEqual([]);
-    expect(body.products).toEqual([]);
+    expect(body.data.celebStyles).toEqual([]);
+    expect(body.data.products).toEqual([]);
   });
 });

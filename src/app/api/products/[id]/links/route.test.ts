@@ -28,18 +28,18 @@ const mockLinks = [
     currency: "KRW",
     productUrl: "https://www.musinsa.com/product/1",
     inStock: true,
-    lastCheckedAt: new Date("2026-01-15"),
+    lastCheckedAt: new Date().toISOString(),
   },
   {
     id: "link-2",
     productId: "prod-1",
-    platformName: "29CM",
+    platformName: "29cm",
     platformLogoUrl: null,
     price: 92000,
     currency: "KRW",
     productUrl: "https://www.29cm.co.kr/product/1",
     inStock: true,
-    lastCheckedAt: new Date("2026-01-14"),
+    lastCheckedAt: new Date().toISOString(),
   },
 ];
 
@@ -50,15 +50,20 @@ describe("GET /api/products/:id/links", () => {
 
   it("상품의 구매처 목록을 반환한다", async () => {
     mockGetProductById.mockResolvedValue({ id: "prod-1" });
-    mockGetProductLinks.mockResolvedValue(mockLinks);
+    mockGetProductLinks.mockResolvedValue({
+      links: mockLinks,
+      stale: false,
+      oldestCheckedAt: new Date().toISOString(),
+    });
 
     const req = new NextRequest("http://localhost:3000/api/products/prod-1/links");
     const res = await GET(req, createCtx("prod-1"));
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toHaveLength(2);
-    expect(body[0].platformName).toBe("무신사");
+    expect(body.data).toHaveLength(2);
+    expect(body.data[0].platformName).toBe("무신사");
+    expect(body.warning).toBeUndefined();
   });
 
   it("존재하지 않는 상품이면 404를 반환한다", async () => {
@@ -74,7 +79,7 @@ describe("GET /api/products/:id/links", () => {
 
   it("sort=price면 'price' 문자열로 호출한다", async () => {
     mockGetProductById.mockResolvedValue({ id: "prod-1" });
-    mockGetProductLinks.mockResolvedValue([]);
+    mockGetProductLinks.mockResolvedValue({ links: [], stale: false, oldestCheckedAt: null });
 
     const req = new NextRequest("http://localhost:3000/api/products/prod-1/links?sort=price");
     await GET(req, createCtx("prod-1"));
@@ -84,7 +89,7 @@ describe("GET /api/products/:id/links", () => {
 
   it("sort 미지정이면 'recent' 문자열로 호출한다", async () => {
     mockGetProductById.mockResolvedValue({ id: "prod-1" });
-    mockGetProductLinks.mockResolvedValue([]);
+    mockGetProductLinks.mockResolvedValue({ links: [], stale: false, oldestCheckedAt: null });
 
     const req = new NextRequest("http://localhost:3000/api/products/prod-1/links");
     await GET(req, createCtx("prod-1"));
@@ -101,5 +106,25 @@ describe("GET /api/products/:id/links", () => {
 
     expect(res.status).toBe(400);
     expect(body.code).toBe("INVALID_SORT_VALUE");
+  });
+
+  it("스테일 데이터면 warning을 포함하여 반환한다", async () => {
+    const staleDate = new Date("2026-04-08T00:00:00Z").toISOString();
+    mockGetProductById.mockResolvedValue({ id: "prod-1" });
+    mockGetProductLinks.mockResolvedValue({
+      links: mockLinks,
+      stale: true,
+      oldestCheckedAt: staleDate,
+    });
+
+    const req = new NextRequest("http://localhost:3000/api/products/prod-1/links");
+    const res = await GET(req, createCtx("prod-1"));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data).toHaveLength(2);
+    expect(body.warning).toBeDefined();
+    expect(body.warning.code).toBe("PRICE_DATA_STALE");
+    expect(body.warning.details.cachedAt).toBe(staleDate);
   });
 });

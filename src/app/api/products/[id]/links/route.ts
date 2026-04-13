@@ -22,13 +22,32 @@ export const GET = withErrorHandler(async (req: NextRequest, ctx: RouteContext) 
     sort: { type: "string", enum: ["price"] },
   });
 
-  const links = await getProductLinks(id, params.sort === "price" ? "price" : "recent");
+  const { links, stale, oldestCheckedAt } = await getProductLinks(
+    id,
+    params.sort === "price" ? "price" : "recent",
+  );
 
   logger.info("구매처 목록 조회", {
     context: "api:products:links",
     duration: Date.now() - start,
-    data: { productId: id, count: links.length },
+    data: { productId: id, count: links.length, stale },
   });
 
-  return NextResponse.json(links);
+  if (stale) {
+    logger.warn("가격 데이터 스테일 감지", {
+      context: "api:products:links",
+      data: { productId: id, oldestCheckedAt },
+    });
+  }
+
+  return NextResponse.json({
+    data: links,
+    ...(stale && {
+      warning: {
+        code: "PRICE_DATA_STALE",
+        message: "가격 데이터가 오래되어 실제와 다를 수 있습니다",
+        details: { cachedAt: oldestCheckedAt },
+      },
+    }),
+  });
 });

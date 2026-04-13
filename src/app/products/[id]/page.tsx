@@ -22,7 +22,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     notFound();
   }
 
-  const links = await getProductLinks(id, "price");
+  const { links, stale } = await getProductLinks(id, "price");
 
   const scorePercent = Math.round(product.similarityScore * 100);
 
@@ -72,6 +72,11 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           <h2 className="text-lg font-bold text-gray-900">구매처</h2>
           <span className="text-sm text-gray-500">{links.length}개 플랫폼</span>
         </div>
+        {stale && (
+          <p className="rounded-lg bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+            가격 정보가 오래되어 실제와 다를 수 있습니다
+          </p>
+        )}
         <PurchaseLinkList links={links} />
       </section>
     </div>

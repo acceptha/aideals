@@ -33,7 +33,7 @@ describe("GET /api/categories", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual(mockCategories);
+    expect(body.data).toEqual(mockCategories);
   });
 
   it("카테고리가 없으면 빈 배열을 반환한다", async () => {
@@ -44,7 +44,7 @@ describe("GET /api/categories", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body).toEqual([]);
+    expect(body.data).toEqual([]);
   });
 
   it("getCategories가 호출된다", async () => {

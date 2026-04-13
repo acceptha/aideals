@@ -17,5 +17,5 @@ export const GET = withErrorHandler(async (_req: NextRequest) => {
     data: { count: categories.length },
   });
 
-  return NextResponse.json(categories);
+  return NextResponse.json({ data: categories });
 });

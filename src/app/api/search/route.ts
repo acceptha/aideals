@@ -24,5 +24,5 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
     data: { query: params.q, type: params.type, celebCount: results.celebStyles.length, productCount: results.products.length },
   });
 
-  return NextResponse.json(results);
+  return NextResponse.json({ data: results });
 });
