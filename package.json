@@ -12,11 +12,13 @@
     "validate-env": "npx tsx scripts/validate-env.ts",
     "validate-env:skip-db": "npx tsx scripts/validate-env.ts --skip-db",
     "commit": "bash scripts/commit.sh",
-    "commit:only": "bash scripts/commit.sh --no-push"
+    "commit:only": "bash scripts/commit.sh --no-push",
+    "crawl": "npx tsx scripts/crawl-prices.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "@upstash/redis": "^1.37.0",
+    "cheerio": "^1.2.0",
     "next": "^15.5.12",
     "prisma": "^5.22.0",
     "react": "^19.2.4",

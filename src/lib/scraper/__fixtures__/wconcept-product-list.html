@@ -1,0 +1,40 @@
+<!--
+  W컨셉 상품 목록 페이지 fixture
+  실제 W컨셉 HTML 구조를 모사한 테스트용 샘플.
+  ⚠️ W컨셉 사이트 구조가 변경되면 이 fixture도 함께 업데이트해야 한다.
+-->
+<ul class="product-list">
+  <li class="product-list__item" data-product-id="WC5001">
+    <a href="/Product/Detail?productNo=WC5001" class="product-list__link">
+      <img class="product-list__img" src="https://img.wconcept.co.kr/product/WC5001.jpg" alt="트위드 재킷" />
+    </a>
+    <div class="product-list__detail">
+      <span class="product-list__brand">시에</span>
+      <p class="product-list__name">클래식 트위드 재킷 - 네이비</p>
+      <em class="product-list__price">198,000원</em>
+    </div>
+  </li>
+
+  <li class="product-list__item" data-product-id="WC5002">
+    <a href="/Product/Detail?productNo=WC5002" class="product-list__link">
+      <img class="product-list__img" src="https://img.wconcept.co.kr/product/WC5002.jpg" alt="플리츠 스커트" />
+    </a>
+    <div class="product-list__detail">
+      <span class="product-list__brand">르메르</span>
+      <p class="product-list__name">롱 플리츠 스커트</p>
+      <em class="product-list__price">245,000원</em>
+    </div>
+  </li>
+
+  <li class="product-list__item product-list__item--soldout" data-product-id="WC5003">
+    <a href="/Product/Detail?productNo=WC5003" class="product-list__link">
+      <img class="product-list__img" src="https://img.wconcept.co.kr/product/WC5003.jpg" alt="캐시미어 코트" />
+    </a>
+    <div class="product-list__detail">
+      <span class="product-list__brand">닐바이피</span>
+      <p class="product-list__name">더블 캐시미어 코트</p>
+      <em class="product-list__price">450,000원</em>
+      <span class="product-list__badge-soldout">Sold Out</span>
+    </div>
+  </li>
+</ul>

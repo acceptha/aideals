@@ -1,5 +1,5 @@
 /**
- * 무신사 HTML 파서
+ * 무신사 HTML 파서 (Cheerio 기반)
  *
  * 무신사 상품 목록/상세 페이지의 HTML을 파싱하여
  * ScrapedProduct 형태로 변환한다.
@@ -8,119 +8,75 @@
  *    파서 변경 시 반드시 fixture 기반 테스트를 업데이트한다.
  */
 
+import * as cheerio from "cheerio";
 import type { PlatformScraper, ScrapedProduct } from "@/types/scraper";
+import { parsePrice } from "./utils";
 
-/** HTML에서 텍스트를 추출하고 앞뒤 공백을 제거하는 헬퍼 */
-const extractText = (html: string, regex: RegExp): string | null => {
-  const match = html.match(regex);
-  return match?.[1]?.trim() ?? null;
-};
-
-/** 가격 문자열 ("29,900원", "₩29,900" 등)에서 숫자만 추출 */
-export const parsePrice = (priceStr: string): number => {
-  const digits = priceStr.replace(/[^0-9]/g, "");
-  const parsed = parseInt(digits, 10);
-  return isNaN(parsed) ? 0 : parsed;
-};
+/** 상대 경로를 절대 URL로 변환 */
+const toAbsoluteUrl = (url: string): string =>
+  url.startsWith("http") ? url : `https://www.musinsa.com${url}`;
 
 /** 무신사 상품 목록 HTML에서 개별 상품 카드를 추출 */
 export const parseMusinsaProductList = (html: string): ScrapedProduct[] => {
+  const $ = cheerio.load(html);
   const products: ScrapedProduct[] = [];
 
-  // 상품 카드 블록 추출 (data-product-id 또는 class="product-card" 등)
-  const cardRegex =
-    /<li[^>]*class="[^"]*product-card[^"]*"[^>]*>([\s\S]*?)<\/li>/gi;
-  let cardMatch;
+  $("li.product-card").each((_, el) => {
+    const $card = $(el);
 
-  while ((cardMatch = cardRegex.exec(html)) !== null) {
-    const cardHtml = cardMatch[1];
+    const productName = $card.find(".product-card__name").text().trim();
+    const brandName = $card.find(".product-card__brand").text().trim();
+    const priceStr = $card.find(".product-card__price").text().trim();
+    const imageUrl = $card.find(".product-card__img").attr("src") ?? "";
+    const productUrl = $card.find(".product-card__link").attr("href") ?? "";
 
-    const productName = extractText(
-      cardHtml,
-      /<a[^>]*class="[^"]*product-card__name[^"]*"[^>]*>([^<]+)<\/a>/i
-    );
-    const brandName = extractText(
-      cardHtml,
-      /<span[^>]*class="[^"]*product-card__brand[^"]*"[^>]*>([^<]+)<\/span>/i
-    );
-    const priceStr = extractText(
-      cardHtml,
-      /<span[^>]*class="[^"]*product-card__price[^"]*"[^>]*>([^<]+)<\/span>/i
-    );
-    const imageUrl = extractText(
-      cardHtml,
-      /<img[^>]*src="([^"]+)"[^>]*class="[^"]*product-card__img[^"]*"/i
-    ) ?? extractText(
-      cardHtml,
-      /<img[^>]*class="[^"]*product-card__img[^"]*"[^>]*src="([^"]+)"/i
-    );
-    const productUrl = extractText(
-      cardHtml,
-      /<a[^>]*href="([^"]+)"[^>]*class="[^"]*product-card__link[^"]*"/i
-    ) ?? extractText(
-      cardHtml,
-      /<a[^>]*class="[^"]*product-card__link[^"]*"[^>]*href="([^"]+)"/i
-    );
-
-    // 품절 여부 확인
-    const isSoldOut = /sold[\s-]*out|품절/i.test(cardHtml);
+    const isSoldOut =
+      $card.hasClass("sold-out") ||
+      $card.find(".badge-soldout").length > 0;
 
     if (productName && brandName && priceStr) {
       products.push({
         productName,
         brandName,
         price: parsePrice(priceStr),
-        imageUrl: imageUrl ?? "",
-        productUrl: productUrl
-          ? productUrl.startsWith("http")
-            ? productUrl
-            : `https://www.musinsa.com${productUrl}`
-          : "",
+        imageUrl,
+        productUrl: productUrl ? toAbsoluteUrl(productUrl) : "",
         inStock: !isSoldOut,
       });
     }
-  }
+  });
 
   return products;
 };
 
 /** 무신사 상품 상세 페이지 HTML에서 상품 정보 추출 */
 export const parseMusinsaProductDetail = (
-  html: string
+  html: string,
 ): ScrapedProduct | null => {
-  const productName = extractText(
-    html,
-    /<span[^>]*class="[^"]*product-title[^"]*"[^>]*>([^<]+)<\/span>/i
-  ) ?? extractText(
-    html,
-    /<h2[^>]*class="[^"]*product_title[^"]*"[^>]*>([^<]+)<\/h2>/i
-  );
+  const $ = cheerio.load(html);
 
-  const brandName = extractText(
-    html,
-    /<a[^>]*class="[^"]*product-brand[^"]*"[^>]*>([^<]+)<\/a>/i
-  ) ?? extractText(
-    html,
-    /<span[^>]*class="[^"]*brand_name[^"]*"[^>]*>([^<]+)<\/span>/i
-  );
+  const productName =
+    $(".product-title").text().trim() ||
+    $(".product_title").text().trim();
 
-  const priceStr = extractText(
-    html,
-    /<span[^>]*class="[^"]*price_cur[^"]*"[^>]*>[^0-9]*([0-9,]+)[^<]*<\/span>/i
-  ) ?? extractText(
-    html,
-    /<em[^>]*class="[^"]*sale_price[^"]*"[^>]*>([^<]+)<\/em>/i
-  );
+  const brandName =
+    $(".product-brand").text().trim() ||
+    $(".brand_name").text().trim();
 
-  const imageUrl = extractText(
-    html,
-    /<img[^>]*id="[^"]*product[_-]?img[^"]*"[^>]*src="([^"]+)"/i
-  ) ?? extractText(
-    html,
-    /<img[^>]*class="[^"]*product-img[^"]*"[^>]*src="([^"]+)"/i
-  );
+  const priceStr =
+    $(".price_cur").text().trim() ||
+    $(".sale_price").text().trim();
 
-  const isSoldOut = /sold[\s-]*out|품절|일시\s*품절/i.test(html);
+  const imageUrl =
+    $("#product-img").attr("src") ??
+    $("#product_img").attr("src") ??
+    $(".product-img").attr("src") ??
+    "";
+
+  const isSoldOut =
+    $(".sold-out-text").length > 0 ||
+    $(".btn-soldout").length > 0 ||
+    $(".product-detail").hasClass("sold-out");
 
   if (!productName || !brandName || !priceStr) {
     return null;
@@ -130,7 +86,7 @@ export const parseMusinsaProductDetail = (
     productName,
     brandName,
     price: parsePrice(priceStr),
-    imageUrl: imageUrl ?? "",
+    imageUrl,
     productUrl: "", // 상세 페이지에서는 이미 URL을 알고 있으므로 호출측에서 설정
     inStock: !isSoldOut,
   };
