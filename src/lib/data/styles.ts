@@ -79,9 +79,13 @@ export const getStyleProducts = (
     sort: filter.sort,
   });
 
-  const where: Prisma.SimilarProductWhereInput = { styleId };
+  const where: Prisma.SimilarProductWhereInput = {
+    styleId,
+    representativePrice: { gt: 0 },
+  };
   if (filter.minPrice !== undefined || filter.maxPrice !== undefined) {
     where.representativePrice = {
+      gt: 0,
       ...(filter.minPrice !== undefined && { gte: filter.minPrice }),
       ...(filter.maxPrice !== undefined && { lte: filter.maxPrice }),
     };

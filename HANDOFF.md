@@ -223,11 +223,11 @@ src/
 | 페이지네이션 UI (styles 목록, 12개 단위) | ✅ 완료 | `5549537` |
 | 가격대 필터 (~3만, 3~5만, 5~10만, 10~20만, 20만~) | ✅ 완료 | `5549537` |
 | 상품 정렬 UI (유사도순/가격순/브랜드순) | ✅ 완료 | `5549537` |
-| Upstash Redis 연동 + 캐시 유틸 구현 | ✅ 완료 | — (unstaged) |
-| 데이터 접근 계층 추출 (`src/lib/data/` 4파일) | ✅ 완료 | — (unstaged) |
-| API Route 8개 + 페이지 4개 → data 계층 리팩토링 | ✅ 완료 | — (unstaged) |
-| 테스트 Prisma mock → data 계층 mock 전환 | ✅ 완료 | — (unstaged) |
-| 문서 업데이트 (claude.md, PROJECT_RULES.md, README.md) | ✅ 완료 | — (unstaged) |
+| Upstash Redis 연동 + 캐시 유틸 구현 | ✅ 완료 | `545a837` |
+| 데이터 접근 계층 추출 (`src/lib/data/` 4파일) | ✅ 완료 | `545a837` |
+| API Route 8개 + 페이지 4개 → data 계층 리팩토링 | ✅ 완료 | `545a837` |
+| 테스트 Prisma mock → data 계층 mock 전환 | ✅ 완료 | `545a837` |
+| 문서 업데이트 (claude.md, PROJECT_RULES.md, README.md) | ✅ 완료 | `545a837` |
 
 ---
 
@@ -246,7 +246,6 @@ src/
 
 ### 기술 부채
 
-- **시즌 정렬 로직 중복**: `src/app/api/styles/route.ts`와 `src/app/styles/page.tsx`에 `SEASON_BY_MONTH` 상수 및 시즌 정렬 로직이 중복됨. 순수 유틸 함수가 여러 개 생기면 `src/utils/`로 추출 필요 (TODO 코멘트 있음)
 - **JS 레벨 페이지네이션**: `getStylesWithCount`가 전체 데이터를 반환한 뒤 JS `Array.slice()`로 페이지네이션 처리 중. 현재 규모(20건)에서는 문제없으나, 데이터 1000건 이상 시 Prisma `skip`/`take` 기반 DB 레벨 페이지네이션으로 전환 필요
 - **검색 캐싱 전략**: 현재 `searchAll`은 모든 검색어를 캐싱하지만, 검색어가 다양하여 캐시 효율이 낮음. 인기 검색어만 캐싱하도록 전환 필요 (Redis Sorted Set 카운터 방식 검토)
 - **Date 역직렬화**: Redis 캐시에서 반환된 Date 필드가 string으로 변환됨. 현재 소비측에서 `new Date()` 래핑으로 방어 처리. Date 필드가 많아지면 역직렬화 유틸 도입 검토 (cache.ts에 TODO 있음)

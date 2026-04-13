@@ -13,10 +13,11 @@
 1. [테스트 전략](#1-테스트-전략)
 2. [환경 변수 관리](#2-환경-변수-관리)
 3. [브랜치 전략 및 Git 커밋 규칙](#3-브랜치-전략-및-git-커밋-규칙)
-4. [에러 코드 체계](#4-에러-코드-체계)
-5. [데이터 시드 규칙](#5-데이터-시드-규칙)
-6. [성능 기준 (Performance Budget)](#6-성능-기준-performance-budget)
-7. [로깅 / 모니터링 규칙](#7-로깅--모니터링-규칙)
+4. [API 응답 포맷](#4-api-응답-포맷)
+5. [에러 코드 체계](#5-에러-코드-체계)
+6. [데이터 시드 규칙](#6-데이터-시드-규칙)
+7. [성능 기준 (Performance Budget)](#7-성능-기준-performance-budget)
+8. [로깅 / 모니터링 규칙](#8-로깅--모니터링-규칙)
 
 ---
 
@@ -106,13 +107,15 @@ GitHub Actions에서 PR마다 `vitest run`을 실행한다. 테스트 실패 시
 
 | 변수명 | 필수 | Phase | 환경 | 설명 | 예시값 |
 |--------|------|-------|------|------|--------|
-| `DATABASE_URL` | ✅ | 1 | 전체 | Supabase PostgreSQL 연결 문자열 | `postgresql://user:pw@host:5432/db` |
-| `UPSTASH_REDIS_REST_URL` | ❌ | 3 | 전체 | Upstash Redis REST URL | `https://xxx.upstash.io` |
-| `UPSTASH_REDIS_REST_TOKEN` | ❌ | 3 | 전체 | Upstash Redis 인증 토큰 | `AXxx...` |
+| `DATABASE_URL` | ✅ | 1 | 서버 | Supabase PostgreSQL 연결 문자열 | `postgresql://user:pw@host:5432/db` |
+| `DIRECT_URL` | ✅ | 1 | 서버 | Supabase 직접 연결 URL (Prisma 마이그레이션용) | `postgresql://postgres:pw@db.xxx.supabase.co:5432/postgres` |
+| `UPSTASH_REDIS_REST_URL` | ❌ | 3 | 서버 | Upstash Redis REST URL | `https://xxx.upstash.io` |
+| `UPSTASH_REDIS_REST_TOKEN` | ❌ | 3 | 서버 | Upstash Redis 인증 토큰 | `AXxx...` |
 | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | ❌ | 3 | 전체 | Cloudinary 클라우드 이름 (클라이언트 노출 가능) | `my-cloud` |
 | `CLOUDINARY_API_KEY` | ❌ | 3 | 서버 | Cloudinary API 키 | `123456789` |
 | `CLOUDINARY_API_SECRET` | ❌ | 3 | 서버 | Cloudinary API 시크릿 | `abcDEF...` |
-| `NEXTAUTH_URL` | ❌ | 4 | 전체 | 인증 콜백 기준 URL | `http://localhost:3000` |
+| `CRON_SECRET` | ❌ | 3 | 서버 | Vercel Cron Job 인증 시크릿 (16자 이상) | `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | ❌ | 4 | 서버 | 인증 콜백 기준 URL | `http://localhost:3000` |
 | `NEXTAUTH_SECRET` | ❌ | 4 | 서버 | 세션 암호화 시크릿 (32자 이상 랜덤 문자열) | `openssl rand -base64 32` |
 | `KAKAO_CLIENT_ID` | ❌ | 4 | 서버 | 카카오 OAuth 클라이언트 ID | `abcd1234...` |
 | `KAKAO_CLIENT_SECRET` | ❌ | 4 | 서버 | 카카오 OAuth 클라이언트 시크릿 | `xxxx...` |
@@ -212,11 +215,13 @@ const db = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
 
 #### 규칙 5: 변수 추가 시 체크리스트
 
-새로운 환경 변수를 추가할 때 아래 3곳을 한 세트로 업데이트한다:
+새로운 환경 변수를 추가할 때 아래 5곳을 한 세트로 업데이트한다:
 
-1. `src/lib/envRules.ts` — `ENV_RULES` 배열에 규칙 추가 (→ `env.ts`와 `validate-env.ts`에 자동 반영)
-2. `.env.example` — 키 추가 (값은 비워두거나 예시 형식만 기재)
-3. `.env.local` — 실제 값 추가 (로컬 개발용)
+1. `src/lib/envRules.ts` — `ENV_RULES` 배열에 규칙 추가 (→ `validate-env.ts`에 자동 반영)
+2. `src/lib/env.ts` — `env` 객체에 getter 추가
+3. `.env.example` — 키 추가 (값은 비워두거나 예시 형식만 기재)
+4. `.env.local` — 실제 값 추가 (로컬 개발용)
+5. `PROJECT_RULES.md` §2 환경 변수 목록 테이블 — 행 추가
 
 Phase가 진행되어 선택→필수로 바뀔 때는 `envRules.ts`에서 `required: false` → `true`로 변경하고, `env.ts`에서 해당 변수의 주석을 해제하면 된다.
 
@@ -412,7 +417,93 @@ chore(deps): zustand 4.5.0 버전 업데이트
 
 ---
 
-## 4. 에러 코드 체계
+## 4. API 응답 포맷
+
+모든 API 엔드포인트는 아래 규칙에 따라 응답 구조를 통일한다. 프론트엔드는 응답 유형(단건/목록/에러)에 따라 일관된 파싱 로직을 사용할 수 있어야 한다.
+
+### 성공 응답
+
+#### 단건 조회
+
+데이터 객체를 직접 반환한다. 래핑하지 않는다.
+
+```json
+{
+  "id": "style-1",
+  "celebName": "아이유",
+  "imageUrl": "https://..."
+}
+```
+
+#### 목록 조회
+
+`data` 배열로 래핑한다. 페이지네이션이 필요한 경우 `pagination` 필드를 포함한다.
+
+```json
+{
+  "data": [{ "id": "style-1", "celebName": "아이유" }, ...],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 58,
+    "totalPages": 3
+  }
+}
+```
+
+- 페이지네이션이 불필요한 목록(예: 카테고리 6개)은 `pagination` 없이 `{ "data": [...] }` 만 반환한다.
+- 배열을 직접 반환(`[...]`)하지 않는다. 반드시 `data`로 감싼다.
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `data` | `T[]` | ✅ | 목록 데이터 배열 |
+| `pagination` | `object` | ❌ | 페이지네이션 정보 (페이지네이션 적용 시) |
+| `pagination.page` | `number` | ✅* | 현재 페이지 (1부터 시작) |
+| `pagination.limit` | `number` | ✅* | 페이지당 항목 수 |
+| `pagination.total` | `number` | ✅* | 전체 항목 수 |
+| `pagination.totalPages` | `number` | ✅* | 전체 페이지 수 |
+
+\* `pagination` 객체가 있을 때 필수
+
+### 경고 (Warning)
+
+HTTP 200이지만 데이터 품질에 주의가 필요한 경우 `warning` 필드를 포함한다. 에러 응답(`{ status, code, message }`)과 혼동하지 않도록 `status` 필드를 포함하지 않는다.
+
+```json
+{
+  "data": [...],
+  "warning": {
+    "code": "PRICE_DATA_STALE",
+    "message": "가격 데이터가 오래되어 실제와 다를 수 있습니다",
+    "details": { "cachedAt": "2025-03-15T09:00:00Z" }
+  }
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `warning` | `object` | ❌ | 경고 정보 (데이터는 정상 반환되지만 주의 필요 시) |
+| `warning.code` | `ErrorCode` | ✅* | 경고 코드 (`ERROR_CODES`에 정의된 값) |
+| `warning.message` | `string` | ✅* | 사람이 읽을 수 있는 경고 설명 |
+| `warning.details` | `Record<string, unknown>` | ❌ | 경고의 추가 컨텍스트 |
+
+\* `warning` 객체가 있을 때 필수
+
+### 에러 응답
+
+에러 응답 포맷은 [5. 에러 코드 체계](#5-에러-코드-체계)를 참고한다.
+
+### 응답 유형 판별
+
+| 조건 | 응답 구조 |
+|------|-----------|
+| HTTP 2xx + `data` 키 없음 | 단건 성공 |
+| HTTP 2xx + `data` 키 있음 | 목록 성공 (+ `pagination?`, `warning?`) |
+| HTTP 4xx/5xx + `code` 키 있음 | 에러 |
+
+---
+
+## 5. 에러 코드 체계
 
 ### 배경
 
@@ -668,7 +759,7 @@ src/types/
 
 ---
 
-## 5. 데이터 시드 규칙
+## 6. 데이터 시드 규칙
 
 ### 배경
 
@@ -731,7 +822,7 @@ npx ts-node prisma/seed.ts
 
 ---
 
-## 6. 성능 기준 (Performance Budget)
+## 7. 성능 기준 (Performance Budget)
 
 ### 배경
 
@@ -795,7 +886,7 @@ npx ts-node prisma/seed.ts
 
 ---
 
-## 7. 로깅 / 모니터링 규칙
+## 8. 로깅 / 모니터링 규칙
 
 ### 배경
 

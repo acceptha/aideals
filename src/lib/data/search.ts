@@ -33,7 +33,7 @@ export const searchAll = (query: string, type?: "celeb" | "brand" | "product") =
       }
 
       results.products = await prisma.similarProduct.findMany({
-        where: { OR: conditions },
+        where: { OR: conditions, representativePrice: { gt: 0 } },
         select: {
           id: true,
           brandName: true,
