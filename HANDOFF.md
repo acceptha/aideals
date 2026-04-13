@@ -1,8 +1,8 @@
 # HANDOFF — 프로젝트 진행 상태
 
 > **작성일:** 2026-03-18
-> **최종 수정:** 2026-04-08
-> **현재 단계:** Phase 1~2 완료, Phase 3 (데이터 확장) 데이터 계층 추출 + Redis 캐싱 완료, 크롤러/Cloudinary 잔여
+> **최종 수정:** 2026-04-13
+> **현재 단계:** Phase 1~3 대부분 완료 (크롤러·API 응답 통일·인프라 정비), Cloudinary 잔여
 > **목표:** 카테고리 선택 → 셀럽 스타일 탐색 → 유사 상품 비교 → 구매처 확인 전체 플로우 완성
 
 ---
@@ -105,7 +105,7 @@
 |------|------|
 | useFilterStore (성별/색상/정렬) | `src/stores/useFilterStore.ts` |
 
-### 테스트 (72개 전체 통과, data 계층 mock 기반)
+### 테스트 (144개 전체 통과, 16 파일, data 계층 mock + fixture 기반)
 
 | 테스트 | 파일 | 건수 |
 |--------|------|------|
@@ -118,14 +118,42 @@
 | GET /api/styles/:id | `src/app/api/styles/[id]/route.test.ts` | 4 |
 | GET /api/styles/:id/products | `src/app/api/styles/[id]/products/route.test.ts` | 6 |
 | GET /api/products/:id | `src/app/api/products/[id]/route.test.ts` | 4 |
-| GET /api/products/:id/links | `src/app/api/products/[id]/links/route.test.ts` | 5 |
+| GET /api/products/:id/links | `src/app/api/products/[id]/links/route.test.ts` | 6 |
 | GET /api/search | `src/app/api/search/route.test.ts` | 7 |
+| GET /api/cron/crawl | `src/app/api/cron/crawl/route.test.ts` | 5 |
+| 무신사 스크래퍼 파서 | `src/lib/scraper/musinsa.test.ts` | 17 |
+| 29CM 스크래퍼 파서 | `src/lib/scraper/cm29.test.ts` | 15 |
+| W컨셉 스크래퍼 파서 | `src/lib/scraper/wconcept.test.ts` | 15 |
+| 크롤링 엔진 | `src/lib/scraper/crawl.test.ts` | 19 |
+
+### 스크래퍼 / 크롤링
+
+| 항목 | 파일 |
+|------|------|
+| 무신사 HTML 파서 (Cheerio 기반) | `src/lib/scraper/musinsa.ts` |
+| 29CM HTML 파서 (Cheerio 기반) | `src/lib/scraper/cm29.ts` |
+| W컨셉 HTML 파서 (Cheerio 기반) | `src/lib/scraper/wconcept.ts` |
+| 플랫폼 스크래퍼 레지스트리 | `src/lib/scraper/registry.ts` |
+| 공용 가격 파싱 유틸 (parsePrice) | `src/lib/scraper/utils.ts` |
+| 크롤링 엔진 (플랫폼 간 병렬, 내 순차 + 실패 추적) | `src/lib/scraper/crawl.ts` |
+| Vercel Cron 엔드포인트 (6시간 주기) | `src/app/api/cron/crawl/route.ts` |
+| CLI 크롤링 스크립트 (`npm run crawl`) | `scripts/crawl-prices.ts` |
+| Vercel Cron 스케줄 설정 | `vercel.json` |
+| 스크래퍼 테스트 fixture (HTML 6개) | `src/lib/scraper/__fixtures__/` |
 
 ### 기타
 
 | 항목 | 파일 |
 |------|------|
-| 무신사 스크래퍼 파서 | `src/lib/scraper/musinsa.ts` |
+| API 응답 `{ data }` 래퍼 통일 (4개 라우트) | `categories`, `search`, `styles/products`, `products/links` |
+| 가격 stale 감지 + warning 응답 (PRICE_DATA_STALE) | `src/lib/data/products.ts`, `src/lib/api/errorCodes.ts` |
+| 상품 상세 stale 경고 배너 UI | `src/app/products/[id]/page.tsx` |
+| withErrorHandler 4xx/5xx 로그 레벨 분리 | `src/lib/api/withErrorHandler.ts` |
+| env.ts getter 기반 lazy 평가 + isProduction 중앙화 | `src/lib/env.ts` |
+| DIRECT_URL / CRON_SECRET 환경변수 추가 | `src/lib/envRules.ts`, `.env.example` |
+| Prisma directUrl 설정 (PgBouncer 우회) | `prisma/schema.prisma` |
+| 시드 데이터 플랫폼명 소문자 정규화 | `prisma/seed-data/purchaseLinks.ts` |
+| 가격 0원 상품 필터링 (search, styles) | `src/lib/data/search.ts`, `src/lib/data/styles.ts` |
 | next/image 외부 도메인 등록 (placehold.co) | `next.config.mjs` |
 | withErrorHandler RouteContext 타입 export | `src/lib/api/withErrorHandler.ts` |
 
@@ -166,8 +194,10 @@ src/
 │       │   └── [id]/
 │       │       ├── route.ts        (+route.test.ts)
 │       │       └── links/route.ts  (+route.test.ts)
-│       └── search/
-│           └── route.ts            (+route.test.ts)
+│       ├── search/
+│       │   └── route.ts            (+route.test.ts)
+│       └── cron/
+│           └── crawl/route.ts      (+route.test.ts)  ← Vercel Cron 크롤링
 ├── components/
 │   ├── ui/
 │   │   ├── Badge.tsx
@@ -198,8 +228,13 @@ src/
 │   ├── env.ts
 │   ├── envRules.ts
 │   └── scraper/
-│       ├── musinsa.ts
-│       └── __fixtures__/
+│       ├── musinsa.ts              (+musinsa.test.ts)
+│       ├── cm29.ts                 (+cm29.test.ts)
+│       ├── wconcept.ts             (+wconcept.test.ts)
+│       ├── crawl.ts                (+crawl.test.ts)  ← 크롤링 엔진
+│       ├── registry.ts             ← 플랫폼 스크래퍼 레지스트리
+│       ├── utils.ts                ← 공용 parsePrice
+│       └── __fixtures__/           ← HTML fixture 6개
 ├── stores/
 │   └── useFilterStore.ts
 └── types/
@@ -228,6 +263,10 @@ src/
 | API Route 8개 + 페이지 4개 → data 계층 리팩토링 | ✅ 완료 | `545a837` |
 | 테스트 Prisma mock → data 계층 mock 전환 | ✅ 완료 | `545a837` |
 | 문서 업데이트 (claude.md, PROJECT_RULES.md, README.md) | ✅ 완료 | `545a837` |
+| Cheerio 기반 가격 크롤러 (무신사/29CM/W컨셉) + Cron | ✅ 완료 | `4f4b30d` |
+| API 응답 `{ data }` 래퍼 통일 + 가격 stale 감지 | ✅ 완료 | `eac4d6e` |
+| env.ts lazy 평가 + DIRECT_URL/CRON_SECRET 추가 | ✅ 완료 | `86edf1c` |
+| 가격 0원 상품 필터링 + 문서 업데이트 | ✅ 완료 | `1120170` |
 
 ---
 
@@ -235,7 +274,6 @@ src/
 
 ### Phase 3 잔여
 
-- Cheerio 기반 가격 크롤러 구현 (musinsa.ts 확장)
 - Cloudinary 이미지 업로드 파이프라인 (계정 필요)
 
 ### Phase 4
