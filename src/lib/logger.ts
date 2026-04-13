@@ -3,6 +3,8 @@
 // debug 레벨은 NODE_ENV=production 에서 무시된다.
 // 상세 규칙: PROJECT_RULES.md > 7. 로깅 / 모니터링 규칙
 
+import { isProduction } from "./env";
+
 type LogLevel = "error" | "warn" | "info" | "debug";
 
 interface LogEntry {
@@ -21,7 +23,7 @@ interface LogOptions {
 }
 
 function log(level: LogLevel, message: string, options?: LogOptions): void {
-  if (level === "debug" && process.env.NODE_ENV === "production") return;
+  if (level === "debug" && isProduction) return;
 
   const entry: LogEntry = {
     level,

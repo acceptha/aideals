@@ -49,6 +49,23 @@ export const ENV_RULES: EnvVarRule[] = [
       return null;
     },
   },
+  {
+    key: "DIRECT_URL",
+    required: true,
+    phase: 1,
+    serverOnly: true,
+    description: "Supabase 직접 연결 URL (Prisma 마이그레이션용, PgBouncer 우회)",
+    validate: (v) => {
+      if (!v.startsWith("postgresql://") && !v.startsWith("postgres://")) {
+        return "postgresql:// 또는 postgres:// 로 시작해야 합니다";
+      }
+      const urlPattern = /^postgres(ql)?:\/\/.+:.+@.+:\d+\/.+/;
+      if (!urlPattern.test(v)) {
+        return "형식이 올바르지 않습니다. 예: postgresql://postgres:pw@db.xxx.supabase.co:5432/postgres";
+      }
+      return null;
+    },
+  },
 
   // ── Phase 3 ──
   {
@@ -104,6 +121,19 @@ export const ENV_RULES: EnvVarRule[] = [
     description: "Cloudinary API 시크릿",
     validate: (v) => {
       if (v.length < 10) return "시크릿이 너무 짧습니다 (최소 10자)";
+      return null;
+    },
+  },
+
+  // ── Phase 3 — Cron ──
+  {
+    key: "CRON_SECRET",
+    required: false,
+    phase: 3,
+    serverOnly: true,
+    description: "Vercel Cron Job 인증 시크릿",
+    validate: (v) => {
+      if (v.length < 16) return "최소 16자 이상이어야 합니다";
       return null;
     },
   },

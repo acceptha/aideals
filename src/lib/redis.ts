@@ -10,7 +10,7 @@
 //   }
 
 import { Redis } from "@upstash/redis";
-import { env } from "./env";
+import { env, isProduction } from "./env";
 
 // undefined = 아직 초기화 안 됨, null = 환경변수 없어서 의도적 비활성화
 const globalForRedis = globalThis as unknown as { redis: Redis | null | undefined };
@@ -30,6 +30,6 @@ export const redis: Redis | null =
     ? globalForRedis.redis
     : createRedisClient();
 
-if (process.env.NODE_ENV !== "production") {
+if (!isProduction) {
   globalForRedis.redis = redis;
 }

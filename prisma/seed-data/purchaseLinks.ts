@@ -16,7 +16,7 @@ export const SEED_PURCHASE_LINKS = [
   {
     id: "seed-link-002",
     productId: "seed-prod-001",
-    platformName: "29CM",
+    platformName: "29cm",
     platformLogoUrl: null,
     price: 179000,
     currency: "KRW",
@@ -26,7 +26,7 @@ export const SEED_PURCHASE_LINKS = [
   {
     id: "seed-link-003",
     productId: "seed-prod-001",
-    platformName: "W컨셉",
+    platformName: "w컨셉",
     platformLogoUrl: null,
     price: 195000,
     currency: "KRW",
@@ -72,7 +72,7 @@ export const SEED_PURCHASE_LINKS = [
   {
     id: "seed-link-007",
     productId: "seed-prod-004",
-    platformName: "COS 공식몰",
+    platformName: "cos 공식몰",
     platformLogoUrl: null,
     price: 350000,
     currency: "KRW",
@@ -82,7 +82,7 @@ export const SEED_PURCHASE_LINKS = [
   {
     id: "seed-link-008",
     productId: "seed-prod-004",
-    platformName: "29CM",
+    platformName: "29cm",
     platformLogoUrl: null,
     price: 339000,
     currency: "KRW",
@@ -126,7 +126,7 @@ export const SEED_PURCHASE_LINKS = [
   {
     id: "seed-link-012",
     productId: "seed-prod-006",
-    platformName: "29CM",
+    platformName: "29cm",
     platformLogoUrl: null,
     price: 35900,
     currency: "KRW",
@@ -180,7 +180,7 @@ export const SEED_PURCHASE_LINKS = [
   {
     id: "seed-link-017",
     productId: "seed-prod-010",
-    platformName: "W컨셉",
+    platformName: "w컨셉",
     platformLogoUrl: null,
     price: 74900,
     currency: "KRW",
@@ -192,7 +192,7 @@ export const SEED_PURCHASE_LINKS = [
   {
     id: "seed-link-018",
     productId: "seed-prod-012",
-    platformName: "29CM",
+    platformName: "29cm",
     platformLogoUrl: null,
     price: 890000,
     currency: "KRW",
@@ -202,7 +202,7 @@ export const SEED_PURCHASE_LINKS = [
   {
     id: "seed-link-019",
     productId: "seed-prod-012",
-    platformName: "W컨셉",
+    platformName: "w컨셉",
     platformLogoUrl: null,
     price: 870000,
     currency: "KRW",
