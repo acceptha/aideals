@@ -1,5 +1,6 @@
 // src/components/PurchaseLinkList.tsx — Server Component
 
+import { CloudinaryImage } from "@/components/CloudinaryImage";
 import type { PurchaseLink } from "@/types";
 
 interface PurchaseLinkListProps {
@@ -38,9 +39,19 @@ export const PurchaseLinkList = ({ links }: PurchaseLinkListProps) => {
               }`}
             >
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-lg">
-                  🏪
-                </span>
+                {link.platformLogoUrl ? (
+                  <CloudinaryImage
+                    src={link.platformLogoUrl}
+                    alt={link.platformName}
+                    width={40}
+                    height={40}
+                    className="rounded-lg"
+                  />
+                ) : (
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-lg">
+                    🏪
+                  </span>
+                )}
                 <div className="flex flex-col">
                   <span className="text-sm font-semibold text-gray-900">
                     {link.platformName}

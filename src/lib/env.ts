@@ -68,9 +68,9 @@ export const env = {
   get UPSTASH_REDIS_REST_URL() { return getEnv().UPSTASH_REDIS_REST_URL; },
   get UPSTASH_REDIS_REST_TOKEN() { return getEnv().UPSTASH_REDIS_REST_TOKEN; },
   get CRON_SECRET() { return getEnv().CRON_SECRET; },
-  // get NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME() { return getEnv().NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME; },
-  // get CLOUDINARY_API_KEY() { return getEnv().CLOUDINARY_API_KEY; },
-  // get CLOUDINARY_API_SECRET() { return getEnv().CLOUDINARY_API_SECRET; },
+  get NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME() { return getEnv().NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME; },
+  get CLOUDINARY_API_KEY() { return getEnv().CLOUDINARY_API_KEY; },
+  get CLOUDINARY_API_SECRET() { return getEnv().CLOUDINARY_API_SECRET; },
 
   // ──────────────────────────────────────────────
   // Phase 4 — 선택

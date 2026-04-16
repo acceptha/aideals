@@ -85,10 +85,6 @@ describe("GET /api/styles", () => {
 
 Claude Code의 PostToolUse hook(`.claude/hooks/lint-check.mjs`)이 파일 편집마다 ESLint + TypeScript 타입 체크를 자동 실행한다. 별도 설정 없이 정적 분석 계층이 확보된다.
 
-### CI 연동
-
-GitHub Actions에서 PR마다 `vitest run`을 실행한다. 테스트 실패 시 머지를 차단한다.
-
 ### 적용 시점
 
 - Phase 1: `vitest` 설치 및 설정 파일(`vitest.config.ts`) 생성
@@ -577,10 +573,18 @@ export const ERROR_CODES = {
   SCRAPER_PARSE_FAILED: "SCRAPER_PARSE_FAILED",
   PRICE_DATA_STALE: "PRICE_DATA_STALE",
 
-  // ── Auth (Phase 4) ──
-  // AUTH_REQUIRED: "AUTH_REQUIRED",
-  // AUTH_TOKEN_EXPIRED: "AUTH_TOKEN_EXPIRED",
-  // AUTH_FORBIDDEN: "AUTH_FORBIDDEN",
+  // ── Upload ──
+  UPLOAD_NO_FILE: "UPLOAD_NO_FILE",
+  UPLOAD_INVALID_TYPE: "UPLOAD_INVALID_TYPE",
+  UPLOAD_FILE_TOO_LARGE: "UPLOAD_FILE_TOO_LARGE",
+  UPLOAD_INVALID_FOLDER: "UPLOAD_INVALID_FOLDER",
+  UPLOAD_FAILED: "UPLOAD_FAILED",
+  CLOUDINARY_NOT_CONFIGURED: "CLOUDINARY_NOT_CONFIGURED",
+
+  // ── Auth ──
+  AUTH_REQUIRED: "AUTH_REQUIRED",
+  // AUTH_TOKEN_EXPIRED: "AUTH_TOKEN_EXPIRED",   // Phase 4
+  // AUTH_FORBIDDEN: "AUTH_FORBIDDEN",           // Phase 4
 } as const;
 
 export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
@@ -621,6 +625,17 @@ export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
 | `SCRAPER_PARSE_FAILED` | 502 | HTML 파싱 실패 | `{ "target": "musinsa.com", "selector": ".product-price" }` |
 | `PRICE_DATA_STALE` | 200 | 캐시된 가격 데이터를 폴백으로 사용 중 (경고) | `{ "cachedAt": "2025-03-15T09:00:00Z" }` |
 
+##### 업로드 (Upload)
+
+| 코드 | 상태 | 설명 | `details` 예시 |
+|------|------|------|---------------|
+| `UPLOAD_NO_FILE` | 400 | 파일이 첨부되지 않음 | — |
+| `UPLOAD_INVALID_TYPE` | 400 | 허용되지 않는 파일 형식 | `{ "allowed": ["image/jpeg", "image/png", "image/webp", "image/avif"] }` |
+| `UPLOAD_FILE_TOO_LARGE` | 413 | 파일 크기 초과 (10MB) | `{ "maxBytes": 10485760, "actualBytes": 15000000 }` |
+| `UPLOAD_INVALID_FOLDER` | 400 | 허용되지 않는 업로드 폴더 | `{ "allowed": ["styles", "products", "platforms", "categories"] }` |
+| `UPLOAD_FAILED` | 502 | Cloudinary 업로드 실패 | — |
+| `CLOUDINARY_NOT_CONFIGURED` | 503 | Cloudinary 환경변수 미설정 | — |
+
 ##### 인증 (Auth) — Phase 4에서 활성화
 
 | 코드 | 상태 | 설명 |
@@ -649,6 +664,13 @@ export const ERROR_STATUS_MAP: Record<ErrorCode, number> = {
   SCRAPER_TARGET_UNREACHABLE: 502,
   SCRAPER_PARSE_FAILED: 502,
   PRICE_DATA_STALE: 200,
+  UPLOAD_NO_FILE: 400,
+  UPLOAD_INVALID_TYPE: 400,
+  UPLOAD_FILE_TOO_LARGE: 413,
+  UPLOAD_INVALID_FOLDER: 400,
+  UPLOAD_FAILED: 502,
+  CLOUDINARY_NOT_CONFIGURED: 503,
+  AUTH_REQUIRED: 401,
 };
 ```
 

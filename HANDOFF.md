@@ -1,8 +1,8 @@
 # HANDOFF — 프로젝트 진행 상태
 
 > **작성일:** 2026-03-18
-> **최종 수정:** 2026-04-13
-> **현재 단계:** Phase 1~3 대부분 완료 (크롤러·API 응답 통일·인프라 정비), Cloudinary 잔여
+> **최종 수정:** 2026-04-16
+> **현재 단계:** Phase 1~3 완료 (크롤러·API 응답 통일·인프라 정비·Cloudinary 이미지 파이프라인)
 > **목표:** 카테고리 선택 → 셀럽 스타일 탐색 → 유사 상품 비교 → 구매처 확인 전체 플로우 완성
 
 ---
@@ -23,6 +23,9 @@
 | vitest 설치 | `package.json` devDependencies |
 | Upstash Redis 싱글턴 (없으면 캐시 스킵) | `src/lib/redis.ts` |
 | 캐시 유틸 (withCache, buildCacheKey, invalidateCache, CACHE_TTL) | `src/lib/cache.ts` |
+| Cloudinary 싱글턴 (없으면 업로드 비활성) | `src/lib/cloudinary.ts` |
+| Cloudinary URL 헬퍼 + next/image loader | `src/lib/image.ts` |
+| cloudinary SDK (v2.9) | `package.json` dependencies |
 
 ### API 유틸리티
 
@@ -62,6 +65,7 @@
 | `GET /api/products/:id` | `src/app/api/products/[id]/route.ts` |
 | `GET /api/products/:id/links` (가격순 정렬) | `src/app/api/products/[id]/links/route.ts` |
 | `GET /api/search` (통합 검색: celeb/brand/product) | `src/app/api/search/route.ts` |
+| `POST /api/admin/upload` (Cloudinary 이미지 업로드) | `src/app/api/admin/upload/route.ts` |
 
 ### 시드 데이터 (DB에 삽입 완료)
 
@@ -85,6 +89,7 @@
 | ProductSortBar | Client | `src/components/ProductSortBar.client.tsx` |
 | ProductCompareCard | Server | `src/components/ProductCompareCard.tsx` |
 | PurchaseLinkList | Server | `src/components/PurchaseLinkList.tsx` |
+| CloudinaryImage | Client | `src/components/CloudinaryImage.tsx` |
 | Badge | Server | `src/components/ui/Badge.tsx` |
 | Skeleton | Server | `src/components/ui/Skeleton.tsx` |
 
@@ -154,8 +159,24 @@
 | Prisma directUrl 설정 (PgBouncer 우회) | `prisma/schema.prisma` |
 | 시드 데이터 플랫폼명 소문자 정규화 | `prisma/seed-data/purchaseLinks.ts` |
 | 가격 0원 상품 필터링 (search, styles) | `src/lib/data/search.ts`, `src/lib/data/styles.ts` |
-| next/image 외부 도메인 등록 (placehold.co) | `next.config.mjs` |
+| next/image 외부 도메인 등록 (placehold.co, res.cloudinary.com) | `next.config.mjs` |
+| Cloudinary 이미지 업로드 API (인증 + 폴더 분류 + 태깅) | `src/app/api/admin/upload/route.ts` |
+| CloudinaryImage 래퍼 (loader + blur placeholder) | `src/components/CloudinaryImage.tsx` |
+| Cloudinary URL 변환 헬퍼 (preset별 리사이즈, blur) | `src/lib/image.ts` |
+| 시드 이미지 마이그레이션 스크립트 (placehold.co → Cloudinary 일괄 전환) | `scripts/migrate-seed-images.ts` |
+| 시드 데이터 이미지 URL Cloudinary 전환 (celebStyles 20건, similarProducts 13건) | `prisma/seed-data/celebStyles.ts`, `prisma/seed-data/similarProducts.ts` |
+| 기존 컴포넌트 CloudinaryImage 전환 (Image → CloudinaryImage) | `StyleCard.tsx`, `ProductCompareCard.tsx`, `PurchaseLinkList.tsx` |
+| Upload 에러 코드 6개 + AUTH_REQUIRED 활성화 | `src/lib/api/errorCodes.ts`, `PROJECT_RULES.md` |
+| env.ts Cloudinary 환경변수 활성화 (주석 해제) | `src/lib/env.ts` |
 | withErrorHandler RouteContext 타입 export | `src/lib/api/withErrorHandler.ts` |
+
+### 스크립트
+
+| 항목 | 파일 |
+|------|------|
+| CLI 크롤링 스크립트 (`npm run crawl`) | `scripts/crawl-prices.ts` |
+| 시드 이미지 Cloudinary 마이그레이션 (`npx tsx scripts/migrate-seed-images.ts`) | `scripts/migrate-seed-images.ts` |
+| 환경변수 검증 스크립트 | `scripts/validate-env.ts` |
 
 ### 현재 src 구조
 
@@ -196,12 +217,15 @@ src/
 │       │       └── links/route.ts  (+route.test.ts)
 │       ├── search/
 │       │   └── route.ts            (+route.test.ts)
+│       ├── admin/
+│       │   └── upload/route.ts     ← Cloudinary 이미지 업로드
 │       └── cron/
 │           └── crawl/route.ts      (+route.test.ts)  ← Vercel Cron 크롤링
 ├── components/
 │   ├── ui/
 │   │   ├── Badge.tsx
 │   │   └── Skeleton.tsx
+│   ├── CloudinaryImage.tsx          ← Cloudinary loader + blur placeholder 래퍼
 │   ├── CategoryGrid.client.tsx
 │   ├── StyleCard.tsx
 │   ├── FilterBar.client.tsx
@@ -225,6 +249,8 @@ src/
 │   ├── redis.ts                    ← Upstash Redis 싱글턴 (없으면 null)
 │   ├── cache.ts                    ← withCache, buildCacheKey, invalidateCache, CACHE_TTL
 │   ├── logger.ts
+│   ├── cloudinary.ts                ← Cloudinary SDK 싱글턴
+│   ├── image.ts                     ← URL 변환 헬퍼 + next/image loader
 │   ├── env.ts
 │   ├── envRules.ts
 │   └── scraper/
@@ -267,14 +293,14 @@ src/
 | API 응답 `{ data }` 래퍼 통일 + 가격 stale 감지 | ✅ 완료 | `eac4d6e` |
 | env.ts lazy 평가 + DIRECT_URL/CRON_SECRET 추가 | ✅ 완료 | `86edf1c` |
 | 가격 0원 상품 필터링 + 문서 업데이트 | ✅ 완료 | `1120170` |
+| Cloudinary 이미지 파이프라인 (업로드 API + URL 헬퍼 + blur placeholder) | ✅ 완료 | — |
+| 시드 이미지 Cloudinary 마이그레이션 (placehold.co → Cloudinary, 33건) | ✅ 완료 | — |
+| 기존 컴포넌트 CloudinaryImage 전환 (StyleCard, ProductCompareCard, PurchaseLinkList) | ✅ 완료 | — |
+| Upload 에러 코드 추가 + AUTH_REQUIRED 활성화 | ✅ 완료 | — |
 
 ---
 
 ## 남은 작업
-
-### Phase 3 잔여
-
-- Cloudinary 이미지 업로드 파이프라인 (계정 필요)
 
 ### Phase 4
 
@@ -341,7 +367,7 @@ export const GET = withErrorHandler(async (req: NextRequest, ctx: RouteContext) 
 - API Route / 페이지에서 Prisma 직접 호출 금지 → `src/lib/data/` 계층 함수 사용
 - `any` 타입 사용 금지
 - `"use client"` 남용 금지 (실제 상호작용 필요한 컴포넌트만)
-- 이미지 `<img>` 태그 직접 사용 금지 → `next/image` 사용
+- 이미지 `<img>` 태그 직접 사용 금지 → `CloudinaryImage` 컴포넌트 사용 (`src/components/CloudinaryImage.tsx`)
 
 ---
 

@@ -1,7 +1,7 @@
 // src/components/ProductCompareCard.tsx — Server Component
 
-import Image from "next/image";
 import Link from "next/link";
+import { CloudinaryImage } from "@/components/CloudinaryImage";
 import type { SimilarProduct } from "@/types";
 
 interface ProductCompareCardProps {
@@ -21,7 +21,7 @@ export const ProductCompareCard = ({ product }: ProductCompareCardProps) => {
       className="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-md"
     >
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-gray-100">
-        <Image
+        <CloudinaryImage
           src={product.productImageUrl}
           alt={`${product.brandName} ${product.productName}`}
           fill

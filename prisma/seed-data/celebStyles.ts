@@ -6,7 +6,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-001",
     celebName: "제니",
-    imageUrl: "https://placehold.co/400x500/f0e6d3/333?text=Jennie+Outer",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147079/aideals/styles/ywdtvhceakj4xugznehy.svg",
     categoryId: "seed-cat-outer",
     colors: ["블랙", "화이트"],
     gender: "female",
@@ -15,7 +15,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-002",
     celebName: "로제",
-    imageUrl: "https://placehold.co/400x500/d3e6f0/333?text=Rose+Outer",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147081/aideals/styles/oct7bgxfycpafzbvnwr4.svg",
     categoryId: "seed-cat-outer",
     colors: ["베이지", "브라운"],
     gender: "female",
@@ -24,7 +24,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-003",
     celebName: "뷔",
-    imageUrl: "https://placehold.co/400x500/d3f0e6/333?text=V+Outer",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147084/aideals/styles/dpdjtf2yqyuwp3bg6tlj.svg",
     categoryId: "seed-cat-outer",
     colors: ["네이비", "블랙"],
     gender: "male",
@@ -33,7 +33,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-004",
     celebName: "차은우",
-    imageUrl: "https://placehold.co/400x500/e6d3f0/333?text=Eunwoo+Outer",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147086/aideals/styles/rdai2q2fpth0t17zeqzv.svg",
     categoryId: "seed-cat-outer",
     colors: ["그레이", "화이트"],
     gender: "male",
@@ -44,7 +44,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-005",
     celebName: "아이유",
-    imageUrl: "https://placehold.co/400x500/f0d3e6/333?text=IU+Top",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147088/aideals/styles/ewtsplwbthrkrldm8m3f.svg",
     categoryId: "seed-cat-top",
     colors: ["화이트", "핑크"],
     gender: "female",
@@ -53,7 +53,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-006",
     celebName: "지민",
-    imageUrl: "https://placehold.co/400x500/e6f0d3/333?text=Jimin+Top",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147091/aideals/styles/e2x2a0fd2qdkv7fkgcrb.svg",
     categoryId: "seed-cat-top",
     colors: ["블랙", "그레이"],
     gender: "male",
@@ -62,7 +62,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-007",
     celebName: "카리나",
-    imageUrl: "https://placehold.co/400x500/d3d3f0/333?text=Karina+Top",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147093/aideals/styles/hmtzdiitx2eu18fvnbsj.svg",
     categoryId: "seed-cat-top",
     colors: ["블루", "화이트"],
     gender: "female",
@@ -71,7 +71,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-008",
     celebName: "도영",
-    imageUrl: "https://placehold.co/400x500/f0f0d3/333?text=Doyoung+Top",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147095/aideals/styles/agcctapku6vsnodmvksd.svg",
     categoryId: "seed-cat-top",
     colors: ["베이지", "브라운"],
     gender: "male",
@@ -82,7 +82,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-009",
     celebName: "수지",
-    imageUrl: "https://placehold.co/400x500/f0d3d3/333?text=Suzy+Bottom",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147097/aideals/styles/cvqhneksvvf33oqxps90.svg",
     categoryId: "seed-cat-bottom",
     colors: ["블루", "네이비"],
     gender: "female",
@@ -91,7 +91,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-010",
     celebName: "정국",
-    imageUrl: "https://placehold.co/400x500/d3f0f0/333?text=JK+Bottom",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147100/aideals/styles/wlx41440yzfsp7ek9dpm.svg",
     categoryId: "seed-cat-bottom",
     colors: ["블랙", "화이트"],
     gender: "male",
@@ -100,7 +100,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-011",
     celebName: "한소희",
-    imageUrl: "https://placehold.co/400x500/e6e6d3/333?text=Sohee+Bottom",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147102/aideals/styles/sdmb88dtxepebuf8xy3p.svg",
     categoryId: "seed-cat-bottom",
     colors: ["베이지", "화이트"],
     gender: "female",
@@ -111,7 +111,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-012",
     celebName: "윈터",
-    imageUrl: "https://placehold.co/400x500/f0e6f0/333?text=Winter+Dress",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147104/aideals/styles/p98tt67rtkiajbfcfuc2.svg",
     categoryId: "seed-cat-dress",
     colors: ["레드", "화이트"],
     gender: "female",
@@ -120,7 +120,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-013",
     celebName: "김고은",
-    imageUrl: "https://placehold.co/400x500/e6f0e6/333?text=Goeun+Dress",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147106/aideals/styles/dods1l6kvpccs5gbcvwv.svg",
     categoryId: "seed-cat-dress",
     colors: ["블랙", "그레이"],
     gender: "female",
@@ -129,7 +129,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-014",
     celebName: "장원영",
-    imageUrl: "https://placehold.co/400x500/d3e6e6/333?text=Wonyoung+Dress",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147109/aideals/styles/t2y46d10zcsta1rw0pxb.svg",
     categoryId: "seed-cat-dress",
     colors: ["핑크", "화이트"],
     gender: "female",
@@ -140,7 +140,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-015",
     celebName: "블랙핑크 리사",
-    imageUrl: "https://placehold.co/400x500/f0d3f0/333?text=Lisa+Shoes",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147111/aideals/styles/ajlk4mdrslcohwk2o7qh.svg",
     categoryId: "seed-cat-shoes",
     colors: ["화이트", "그린"],
     gender: "female",
@@ -149,7 +149,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-016",
     celebName: "지드래곤",
-    imageUrl: "https://placehold.co/400x500/d3d3d3/333?text=GD+Shoes",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147114/aideals/styles/lmzov1ugitbuzch4om8x.svg",
     categoryId: "seed-cat-shoes",
     colors: ["블랙", "레드"],
     gender: "male",
@@ -158,7 +158,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-017",
     celebName: "뉴진스 하니",
-    imageUrl: "https://placehold.co/400x500/e6d3e6/333?text=Hanni+Shoes",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147116/aideals/styles/ryhe4l9a6bnlc9j8fz7k.svg",
     categoryId: "seed-cat-shoes",
     colors: ["베이지", "브라운"],
     gender: "female",
@@ -169,7 +169,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-018",
     celebName: "블랙핑크 지수",
-    imageUrl: "https://placehold.co/400x500/f0f0e6/333?text=Jisoo+Bag",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147118/aideals/styles/uyzj266hwqh0phetmvay.svg",
     categoryId: "seed-cat-bag",
     colors: ["블랙", "브라운"],
     gender: "female",
@@ -178,7 +178,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-019",
     celebName: "박서준",
-    imageUrl: "https://placehold.co/400x500/d3f0d3/333?text=Seojun+Bag",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147121/aideals/styles/hnrvjo6wxijtwp9rmm7c.svg",
     categoryId: "seed-cat-bag",
     colors: ["네이비", "블랙"],
     gender: "male",
@@ -187,7 +187,7 @@ export const SEED_CELEB_STYLES = [
   {
     id: "seed-style-020",
     celebName: "송혜교",
-    imageUrl: "https://placehold.co/400x500/e6e6f0/333?text=Hyekyo+Bag",
+    imageUrl: "https://res.cloudinary.com/dpemndoq8/image/upload/v1776147124/aideals/styles/ecrs21d522r2qogtvfsr.svg",
     categoryId: "seed-cat-bag",
     colors: ["화이트", "베이지"],
     gender: "female",

@@ -1,7 +1,7 @@
 // src/components/StyleCard.tsx — Server Component
 
-import Image from "next/image";
 import Link from "next/link";
+import { CloudinaryImage } from "@/components/CloudinaryImage";
 import { Badge } from "@/components/ui/Badge";
 import type { CelebStyle } from "@/types";
 
@@ -27,7 +27,7 @@ export const StyleCard = ({ style }: StyleCardProps) => {
   return (
     <Link href={`/styles/${style.id}`} className="group flex flex-col gap-2">
       <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-gray-100">
-        <Image
+        <CloudinaryImage
           src={style.imageUrl}
           alt={`${style.celebName} 스타일`}
           fill

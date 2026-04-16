@@ -395,12 +395,11 @@ src/
 
 환경 변수는 **두 시점**에 자동 검증된다:
 
-1. **Git 커밋 전 (pre-commit hook)**: `validate-env.ts --mode=quick` — 필수 키 존재 여부만 빠르게 검증. 누락 시 커밋 거부.
+1. **Git 커밋 전 (pre-commit hook)**: 순수 shell — `.env` 커밋 방지, 필수 키 동기화, `NEXT_PUBLIC_` 시크릿 유출 감지. 위반 시 커밋 거부.
 2. **`npm run dev` / `npm run build` 전 (predev/prebuild)**: `validate-env.ts` full 모드 — 키 존재 + 값 형식 검증 + DB 연결 테스트. 실패 시 앱 시작 차단.
 
 수동 실행:
 - `npm run validate-env` — full 모드 (키 + 형식 + DB)
-- `npm run validate-env:quick` — quick 모드 (키만)
 - `npm run validate-env:skip-db` — full 모드에서 DB 연결만 건너뜀
 
 > 변수 목록, 환경 파일 구분, 검증 로직 패턴, 유출 대응 절차 등 상세 규칙은 **[PROJECT_RULES.md > 2. 환경 변수 관리](./PROJECT_RULES.md#2-환경-변수-관리)** 를 참고한다.
