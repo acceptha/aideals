@@ -38,8 +38,8 @@ export const ERROR_CODES = {
 
   // ── Auth ──
   AUTH_REQUIRED: "AUTH_REQUIRED",
-  // AUTH_TOKEN_EXPIRED: "AUTH_TOKEN_EXPIRED",   // Phase 4
-  // AUTH_FORBIDDEN: "AUTH_FORBIDDEN",           // Phase 4
+  AUTH_TOKEN_EXPIRED: "AUTH_TOKEN_EXPIRED",
+  AUTH_FORBIDDEN: "AUTH_FORBIDDEN",
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -65,4 +65,6 @@ export const ERROR_STATUS_MAP: Record<ErrorCode, number> = {
   UPLOAD_FAILED: 502,
   CLOUDINARY_NOT_CONFIGURED: 503,
   AUTH_REQUIRED: 401,
+  AUTH_TOKEN_EXPIRED: 401,
+  AUTH_FORBIDDEN: 403,
 };

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SessionProvider } from "@/components/SessionProvider.client";
+import { AuthButton } from "@/components/AuthButton.client";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,19 +17,24 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className="min-h-screen bg-gray-50 antialiased">
-        <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
-          <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-            <Link href="/" className="text-lg font-bold tracking-tight text-gray-900">
-              aideals
-            </Link>
-            <nav className="flex gap-4 text-sm text-gray-500">
-              <Link href="/styles" className="hover:text-gray-900">
-                스타일 탐색
+        <SessionProvider>
+          <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
+            <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+              <Link href="/" className="text-lg font-bold tracking-tight text-gray-900">
+                aideals
               </Link>
-            </nav>
-          </div>
-        </header>
-        <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+              <div className="flex items-center gap-4">
+                <nav className="flex gap-4 text-sm text-gray-500">
+                  <Link href="/styles" className="hover:text-gray-900">
+                    스타일 탐색
+                  </Link>
+                </nav>
+                <AuthButton />
+              </div>
+            </div>
+          </header>
+          <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+        </SessionProvider>
       </body>
     </html>
   );

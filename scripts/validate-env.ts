@@ -87,11 +87,11 @@ function stepValidateFormat(): { errors: string[]; warnings: string[] } {
   }
 
   // 모든 NEXT_PUBLIC_ 변수 중 시크릿성 키워드 포함 여부 경고
-  const secretKeywords = ["SECRET", "TOKEN", "PASSWORD", "PRIVATE", "KEY"];
+  // "KEY" 단독은 Public API Key 등 클라이언트 노출이 의도된 경우가 많으므로 제외.
+  // 대신 SECRET_KEY, PRIVATE_KEY 등 복합 키워드로 감지한다.
+  const secretKeywords = ["SECRET", "TOKEN", "PASSWORD", "PRIVATE_KEY"];
   for (const [key] of Object.entries(process.env)) {
     if (!key.startsWith("NEXT_PUBLIC_")) continue;
-    // 허용 목록에 있는 건 건너뜀
-    if (key === "NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME") continue;
 
     const upperKey = key.toUpperCase();
     for (const keyword of secretKeywords) {

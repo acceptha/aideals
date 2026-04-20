@@ -73,12 +73,12 @@ export const env = {
   get CLOUDINARY_API_SECRET() { return getEnv().CLOUDINARY_API_SECRET; },
 
   // ──────────────────────────────────────────────
-  // Phase 4 — 선택
+  // Phase 4 — 인증 (없으면 인증 비활성)
   // ──────────────────────────────────────────────
-  // get NEXTAUTH_URL() { return getEnv().NEXTAUTH_URL; },
-  // get NEXTAUTH_SECRET() { return getEnv().NEXTAUTH_SECRET; },
-  // get KAKAO_CLIENT_ID() { return getEnv().KAKAO_CLIENT_ID; },
-  // get KAKAO_CLIENT_SECRET() { return getEnv().KAKAO_CLIENT_SECRET; },
-  // get GOOGLE_CLIENT_ID() { return getEnv().GOOGLE_CLIENT_ID; },
-  // get GOOGLE_CLIENT_SECRET() { return getEnv().GOOGLE_CLIENT_SECRET; },
+  get NEXTAUTH_URL() { return getEnv().NEXTAUTH_URL; },
+  get NEXTAUTH_SECRET() { return getEnv().NEXTAUTH_SECRET; },
+  get KAKAO_CLIENT_ID() { return getEnv().KAKAO_CLIENT_ID; },
+  get KAKAO_CLIENT_SECRET() { return getEnv().KAKAO_CLIENT_SECRET; },
+  get GOOGLE_CLIENT_ID() { return getEnv().GOOGLE_CLIENT_ID; },
+  get GOOGLE_CLIENT_SECRET() { return getEnv().GOOGLE_CLIENT_SECRET; },
 };

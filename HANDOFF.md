@@ -1,8 +1,8 @@
 # HANDOFF — 프로젝트 진행 상태
 
 > **작성일:** 2026-03-18
-> **최종 수정:** 2026-04-16
-> **현재 단계:** Phase 1~3 완료 (크롤러·API 응답 통일·인프라 정비·Cloudinary 이미지 파이프라인)
+> **최종 수정:** 2026-04-17
+> **현재 단계:** Phase 1~3 완료 + Phase 4 인증 구현 (NextAuth.js v5 카카오/구글 소셜 로그인)
 > **목표:** 카테고리 선택 → 셀럽 스타일 탐색 → 유사 상품 비교 → 구매처 확인 전체 플로우 완성
 
 ---
@@ -14,7 +14,7 @@
 | 항목 | 파일 |
 |------|------|
 | Next.js 15 프로젝트 초기 설정 | `next.config.mjs`, `tailwind.config.ts`, `tsconfig.json` |
-| Prisma 스키마 (4테이블) + 마이그레이션 | `prisma/schema.prisma`, `prisma/migrations/` |
+| Prisma 스키마 (8테이블: 도메인 4 + 인증 4) + 마이그레이션 | `prisma/schema.prisma`, `prisma/migrations/` |
 | 환경변수 관리 모듈 | `src/lib/env.ts` |
 | 환경변수 검증 스크립트 | `scripts/validate-env.ts` |
 | Prisma 싱글턴 | `src/lib/prisma.ts` |
@@ -26,6 +26,8 @@
 | Cloudinary 싱글턴 (없으면 업로드 비활성) | `src/lib/cloudinary.ts` |
 | Cloudinary URL 헬퍼 + next/image loader | `src/lib/image.ts` |
 | cloudinary SDK (v2.9) | `package.json` dependencies |
+| NextAuth.js v5 설정 (Prisma Adapter, 카카오/구글) | `src/lib/auth.ts` |
+| next-auth v5 + @auth/prisma-adapter | `package.json` dependencies |
 
 ### API 유틸리티
 
@@ -66,6 +68,7 @@
 | `GET /api/products/:id/links` (가격순 정렬) | `src/app/api/products/[id]/links/route.ts` |
 | `GET /api/search` (통합 검색: celeb/brand/product) | `src/app/api/search/route.ts` |
 | `POST /api/admin/upload` (Cloudinary 이미지 업로드) | `src/app/api/admin/upload/route.ts` |
+| `GET/POST /api/auth/[...nextauth]` (NextAuth.js 인증) | `src/app/api/auth/[...nextauth]/route.ts` |
 
 ### 시드 데이터 (DB에 삽입 완료)
 
@@ -92,6 +95,8 @@
 | CloudinaryImage | Client | `src/components/CloudinaryImage.tsx` |
 | Badge | Server | `src/components/ui/Badge.tsx` |
 | Skeleton | Server | `src/components/ui/Skeleton.tsx` |
+| SessionProvider | Client | `src/components/SessionProvider.client.tsx` |
+| AuthButton | Client | `src/components/AuthButton.client.tsx` |
 
 ### 페이지 (전부 Server Component, data 계층 호출)
 
@@ -101,6 +106,7 @@
 | 스타일 목록 (필터 + 시즌 자동 정렬 + 페이지네이션) | `src/app/styles/page.tsx` |
 | 스타일 상세 (유사 상품 비교 + 가격대 필터 + 정렬) | `src/app/styles/[id]/page.tsx` |
 | 상품 상세 (구매처 목록, 최저가 하이라이트) | `src/app/products/[id]/page.tsx` |
+| 로그인 (카카오/구글 소셜 로그인) | `src/app/login/page.tsx` |
 | 스타일 로딩 스켈레톤 | `src/app/styles/loading.tsx` |
 | 스타일 에러 처리 | `src/app/styles/error.tsx` |
 
@@ -202,6 +208,8 @@ src/
 │   │       ├── loading.tsx
 │   │       ├── error.tsx
 │   │       └── not-found.tsx
+│   ├── login/
+│   │   └── page.tsx                ← 소셜 로그인 (카카오/구글)
 │   └── api/
 │       ├── categories/
 │       │   ├── route.ts            (+route.test.ts)
@@ -217,6 +225,8 @@ src/
 │       │       └── links/route.ts  (+route.test.ts)
 │       ├── search/
 │       │   └── route.ts            (+route.test.ts)
+│       ├── auth/
+│       │   └── [...nextauth]/route.ts ← NextAuth.js 인증 핸들러
 │       ├── admin/
 │       │   └── upload/route.ts     ← Cloudinary 이미지 업로드
 │       └── cron/
@@ -233,7 +243,9 @@ src/
 │   ├── PriceFilter.client.tsx      ← 가격대 필터
 │   ├── ProductSortBar.client.tsx   ← 상품 정렬 바
 │   ├── ProductCompareCard.tsx
-│   └── PurchaseLinkList.tsx
+│   ├── PurchaseLinkList.tsx
+│   ├── SessionProvider.client.tsx   ← NextAuth SessionProvider 래퍼
+│   └── AuthButton.client.tsx        ← 로그인/로그아웃 버튼
 ├── lib/
 │   ├── api/
 │   │   ├── errorCodes.ts
@@ -245,6 +257,7 @@ src/
 │   │   ├── styles.ts               ← getStylesWithCount, getStyleById, getStyleProducts
 │   │   ├── products.ts             ← getProductById, getProductLinks
 │   │   └── search.ts              ← searchAll
+│   ├── auth.ts                      ← NextAuth.js v5 설정 (카카오/구글 + Prisma Adapter)
 │   ├── prisma.ts
 │   ├── redis.ts                    ← Upstash Redis 싱글턴 (없으면 null)
 │   ├── cache.ts                    ← withCache, buildCacheKey, invalidateCache, CACHE_TTL
@@ -297,6 +310,10 @@ src/
 | 시드 이미지 Cloudinary 마이그레이션 (placehold.co → Cloudinary, 33건) | ✅ 완료 | — |
 | 기존 컴포넌트 CloudinaryImage 전환 (StyleCard, ProductCompareCard, PurchaseLinkList) | ✅ 완료 | — |
 | Upload 에러 코드 추가 + AUTH_REQUIRED 활성화 | ✅ 완료 | — |
+| NextAuth.js v5 카카오/구글 소셜 로그인 (Prisma Adapter + 로그인 페이지) | ✅ 완료 | — |
+| 인증 테이블 추가 (User, Account, Session, VerificationToken) | ✅ 완료 | — |
+| AUTH_TOKEN_EXPIRED, AUTH_FORBIDDEN 에러 코드 활성화 | ✅ 완료 | — |
+| SessionProvider + AuthButton 레이아웃 연동 | ✅ 완료 | — |
 
 ---
 
@@ -304,7 +321,7 @@ src/
 
 ### Phase 4
 
-- NextAuth.js 인증 (카카오/구글 소셜 로그인)
+- ~~NextAuth.js 인증 (카카오/구글 소셜 로그인)~~ ✅
 - 관리자 페이지
 - PWA 설정
 

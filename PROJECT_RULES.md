@@ -85,6 +85,10 @@ describe("GET /api/styles", () => {
 
 Claude Code의 PostToolUse hook(`.claude/hooks/lint-check.mjs`)이 파일 편집마다 ESLint + TypeScript 타입 체크를 자동 실행한다. 별도 설정 없이 정적 분석 계층이 확보된다.
 
+### CI 연동
+
+GitHub Actions에서 PR마다 `vitest run`을 실행한다. 테스트 실패 시 머지를 차단한다.
+
 ### 적용 시점
 
 - Phase 1: `vitest` 설치 및 설정 파일(`vitest.config.ts`) 생성
