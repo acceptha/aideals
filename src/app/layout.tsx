@@ -28,6 +28,9 @@ export default function RootLayout({
                   <Link href="/styles" className="hover:text-gray-900">
                     스타일 탐색
                   </Link>
+                  <Link href="/admin" className="hover:text-gray-900">
+                    관리자
+                  </Link>
                 </nav>
                 <AuthButton />
               </div>

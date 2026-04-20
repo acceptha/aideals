@@ -1,8 +1,8 @@
 # HANDOFF — 프로젝트 진행 상태
 
 > **작성일:** 2026-03-18
-> **최종 수정:** 2026-04-17
-> **현재 단계:** Phase 1~3 완료 + Phase 4 인증 구현 (NextAuth.js v5 카카오/구글 소셜 로그인)
+> **최종 수정:** 2026-04-20
+> **현재 단계:** Phase 1~3 완료 + Phase 4 인증/관리자 구현
 > **목표:** 카테고리 선택 → 셀럽 스타일 탐색 → 유사 상품 비교 → 구매처 확인 전체 플로우 완성
 
 ---
@@ -26,8 +26,9 @@
 | Cloudinary 싱글턴 (없으면 업로드 비활성) | `src/lib/cloudinary.ts` |
 | Cloudinary URL 헬퍼 + next/image loader | `src/lib/image.ts` |
 | cloudinary SDK (v2.9) | `package.json` dependencies |
-| NextAuth.js v5 설정 (Prisma Adapter, 카카오/구글) | `src/lib/auth.ts` |
+| NextAuth.js v5 설정 (Prisma Adapter, 카카오/구글, 세션 role) | `src/lib/auth.ts` |
 | next-auth v5 + @auth/prisma-adapter | `package.json` dependencies |
+| NextAuth 세션 타입 확장 (role 필드) | `src/types/next-auth.d.ts` |
 
 ### API 유틸리티
 
@@ -54,6 +55,7 @@
 | styles | `getStylesWithCount(filter)`, `getStyleById(id)`, `getStyleProducts(styleId, filter)` | LIST (5m) / STYLE_DETAIL (10m) | `src/lib/data/styles.ts` |
 | products | `getProductById(id)`, `getProductLinks(productId, sort)` | PRODUCT_DETAIL (10m) / PRICE (3m) | `src/lib/data/products.ts` |
 | search | `searchAll(query, type)` | LIST (5m) | `src/lib/data/search.ts` |
+| admin | `getDashboardStats()`, `getAdmin*()`, `create*()`, `update*()`, `delete*()` | 없음 (실시간) | `src/lib/data/admin.ts` |
 
 ### API Routes (data 계층 호출, 전부 동작 확인 완료)
 
@@ -97,6 +99,10 @@
 | Skeleton | Server | `src/components/ui/Skeleton.tsx` |
 | SessionProvider | Client | `src/components/SessionProvider.client.tsx` |
 | AuthButton | Client | `src/components/AuthButton.client.tsx` |
+| CategoryManager | Client | `src/app/admin/categories/CategoryManager.client.tsx` |
+| StyleManager | Client | `src/app/admin/styles/StyleManager.client.tsx` |
+| ProductManager | Client | `src/app/admin/products/ProductManager.client.tsx` |
+| LinkManager | Client | `src/app/admin/purchase-links/LinkManager.client.tsx` |
 
 ### 페이지 (전부 Server Component, data 계층 호출)
 
@@ -107,6 +113,11 @@
 | 스타일 상세 (유사 상품 비교 + 가격대 필터 + 정렬) | `src/app/styles/[id]/page.tsx` |
 | 상품 상세 (구매처 목록, 최저가 하이라이트) | `src/app/products/[id]/page.tsx` |
 | 로그인 (카카오/구글 소셜 로그인) | `src/app/login/page.tsx` |
+| 관리자 대시보드 (통계 카드) | `src/app/admin/page.tsx` |
+| 관리자 카테고리 관리 (CRUD) | `src/app/admin/categories/page.tsx` |
+| 관리자 스타일 관리 (CRUD) | `src/app/admin/styles/page.tsx` |
+| 관리자 상품 관리 (CRUD) | `src/app/admin/products/page.tsx` |
+| 관리자 구매처 관리 (CRUD) | `src/app/admin/purchase-links/page.tsx` |
 | 스타일 로딩 스켈레톤 | `src/app/styles/loading.tsx` |
 | 스타일 에러 처리 | `src/app/styles/error.tsx` |
 
@@ -210,6 +221,22 @@ src/
 │   │       └── not-found.tsx
 │   ├── login/
 │   │   └── page.tsx                ← 소셜 로그인 (카카오/구글)
+│   ├── admin/
+│   │   ├── layout.tsx              ← 관리자 레이아웃 (role 체크 + 사이드바)
+│   │   ├── page.tsx                ← 대시보드 (통계)
+│   │   ├── actions.ts              ← Server Actions (CRUD)
+│   │   ├── categories/
+│   │   │   ├── page.tsx
+│   │   │   └── CategoryManager.client.tsx
+│   │   ├── styles/
+│   │   │   ├── page.tsx
+│   │   │   └── StyleManager.client.tsx
+│   │   ├── products/
+│   │   │   ├── page.tsx
+│   │   │   └── ProductManager.client.tsx
+│   │   └── purchase-links/
+│   │       ├── page.tsx
+│   │       └── LinkManager.client.tsx
 │   └── api/
 │       ├── categories/
 │       │   ├── route.ts            (+route.test.ts)
@@ -253,6 +280,7 @@ src/
 │   │   ├── withErrorHandler.ts    (+withErrorHandler.test.ts)
 │   │   └── parseQueryParams.ts    (+parseQueryParams.test.ts)
 │   ├── data/                       ← 데이터 접근 계층 (캐싱 포함)
+│   │   ├── admin.ts                ← 관리자 CRUD + 대시보드 통계
 │   │   ├── categories.ts           ← getCategories, getCategoryById
 │   │   ├── styles.ts               ← getStylesWithCount, getStyleById, getStyleProducts
 │   │   ├── products.ts             ← getProductById, getProductLinks
@@ -279,6 +307,7 @@ src/
 └── types/
     ├── index.ts
     ├── api.ts
+    ├── next-auth.d.ts              ← NextAuth 세션 타입 확장 (role)
     └── scraper.ts
 ```
 
@@ -314,6 +343,10 @@ src/
 | 인증 테이블 추가 (User, Account, Session, VerificationToken) | ✅ 완료 | — |
 | AUTH_TOKEN_EXPIRED, AUTH_FORBIDDEN 에러 코드 활성화 | ✅ 완료 | — |
 | SessionProvider + AuthButton 레이아웃 연동 | ✅ 완료 | — |
+| 관리자 페이지 (대시보드 + 카테고리/스타일/상품/구매처 CRUD) | ✅ 완료 | — |
+| 관리자 권한 체크 (세션 role="admin" 검증) | ✅ 완료 | — |
+| Admin 데이터 계층 (CRUD + 캐시 무효화) | ✅ 완료 | — |
+| Server Actions 기반 관리자 CRUD | ✅ 완료 | — |
 
 ---
 
@@ -322,7 +355,7 @@ src/
 ### Phase 4
 
 - ~~NextAuth.js 인증 (카카오/구글 소셜 로그인)~~ ✅
-- 관리자 페이지
+- ~~관리자 페이지~~ ✅
 - PWA 설정
 
 ### 기술 부채
