@@ -59,3 +59,10 @@ prisma/migrations/**/migration_lock.toml
 
 # claude code local settings
 .claude/settings.local.json
+
+# PWA service worker (빌드 시 자동 생성)
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+public/swe-worker-*.js

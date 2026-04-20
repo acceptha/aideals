@@ -2,7 +2,7 @@
 
 > **작성일:** 2026-03-18
 > **최종 수정:** 2026-04-20
-> **현재 단계:** Phase 1~3 완료 + Phase 4 인증/관리자 구현
+> **현재 단계:** Phase 1~4 완료
 > **목표:** 카테고리 선택 → 셀럽 스타일 탐색 → 유사 상품 비교 → 구매처 확인 전체 플로우 완성
 
 ---
@@ -29,6 +29,8 @@
 | NextAuth.js v5 설정 (Prisma Adapter, 카카오/구글, 세션 role) | `src/lib/auth.ts` |
 | next-auth v5 + @auth/prisma-adapter | `package.json` dependencies |
 | NextAuth 세션 타입 확장 (role 필드) | `src/types/next-auth.d.ts` |
+| PWA 설정 (@ducanh2912/next-pwa, manifest, 서비스워커) | `next.config.mjs`, `public/manifest.json` |
+| PWA 아이콘 (SVG + PNG 192/512 + maskable) | `public/icons/` |
 
 ### API 유틸리티
 
@@ -347,6 +349,7 @@ src/
 | 관리자 권한 체크 (세션 role="admin" 검증) | ✅ 완료 | — |
 | Admin 데이터 계층 (CRUD + 캐시 무효화) | ✅ 완료 | — |
 | Server Actions 기반 관리자 CRUD | ✅ 완료 | — |
+| PWA 설정 (manifest + 서비스워커 + 아이콘 + 메타태그) | ✅ 완료 | — |
 
 ---
 
@@ -356,7 +359,7 @@ src/
 
 - ~~NextAuth.js 인증 (카카오/구글 소셜 로그인)~~ ✅
 - ~~관리자 페이지~~ ✅
-- PWA 설정
+- ~~PWA 설정~~ ✅
 
 ### 기술 부채
 

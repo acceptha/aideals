@@ -7,6 +7,18 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "aideals — 셀럽 스타일 패션 비교",
   description: "셀럽 스타일을 탐색하고 유사 상품을 브랜드·가격별로 비교하세요",
+  manifest: "/manifest.json",
+  themeColor: "#111827",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "aideals",
+  },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  },
 };
 
 export default function RootLayout({
@@ -16,6 +28,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+      </head>
       <body className="min-h-screen bg-gray-50 antialiased">
         <SessionProvider>
           <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
