@@ -143,6 +143,20 @@ describe("crawlLink", () => {
     expect(fetchFn).not.toHaveBeenCalled();
   });
 
+  it("검색 페이지 URL이면 fetch 없이 건너뛴다", async () => {
+    const fetchFn = vi.fn();
+    const link = makeLink({
+      productUrl: "https://www.musinsa.com/search/goods?keyword=%EC%BD%94%ED%8A%B8",
+    });
+
+    const result = await crawlLink(link, fetchFn);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("검색 페이지 URL");
+    expect(fetchFn).not.toHaveBeenCalled();
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
   it("fetch 실패 시 SCRAPER_TARGET_UNREACHABLE 에러 코드를 반환한다", async () => {
     const fetchFn = vi.fn().mockRejectedValue(new Error("네트워크 오류"));
     const link = makeLink();
@@ -274,6 +288,21 @@ describe("crawlAll", () => {
     expect(summary.skipped).toBe(1);
     expect(summary.success).toBe(0);
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("검색 페이지 URL 링크는 skipped로 카운트한다", async () => {
+    mockFindMany.mockResolvedValueOnce([
+      makeLink({ id: "link-1", productUrl: "https://www.29cm.co.kr/store/search?keyword=a" }),
+      makeLink({ id: "link-2", productUrl: "https://www.musinsa.com/app/goods/2" }),
+    ]);
+
+    const fetchFn = vi.fn().mockResolvedValue(DETAIL_HTML);
+
+    const summary = await crawlAll(fetchFn);
+
+    expect(summary.skipped).toBe(1);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(fetchFn).toHaveBeenCalledWith("https://www.musinsa.com/app/goods/2");
   });
 
   it("링크가 없으면 빈 요약을 반환한다", async () => {

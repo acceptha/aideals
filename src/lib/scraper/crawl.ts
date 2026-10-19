@@ -16,6 +16,7 @@ import { logger } from "@/lib/logger";
 import { AppError } from "@/lib/api/errors";
 import type { ErrorCode } from "@/lib/api/errorCodes";
 import { getScraperByPlatform } from "./registry";
+import { isSearchPageUrl } from "./utils";
 
 /** 크롤링 결과 단건 */
 export interface CrawlLinkResult {
@@ -108,6 +109,19 @@ export const crawlLink = async (
   fetchFn: (url: string) => Promise<string> = fetchHtml,
   failureCounter: FailureCounter = new Map(),
 ): Promise<CrawlLinkResult> => {
+  // 검색 페이지는 첫 상품 가격으로 덮어쓸 위험이 있어 크롤링하지 않는다 (실패 카운트에도 미포함)
+  if (isSearchPageUrl(link.productUrl)) {
+    return {
+      linkId: link.id,
+      productId: link.productId,
+      platform: link.platformName,
+      success: false,
+      oldPrice: link.price,
+      newPrice: null,
+      error: `상품 상세가 아닌 검색 페이지 URL: ${link.productUrl}`,
+    };
+  }
+
   const scraper = getScraperByPlatform(link.platformName);
 
   if (!scraper) {
@@ -296,6 +310,19 @@ export const crawlAll = async (
   const platformGroups = new Map<string, LinkRow[]>();
 
   for (const link of links) {
+    if (isSearchPageUrl(link.productUrl)) {
+      skippedResults.push({
+        linkId: link.id,
+        productId: link.productId,
+        platform: link.platformName,
+        success: false,
+        oldPrice: link.price,
+        newPrice: null,
+        error: `상품 상세가 아닌 검색 페이지 URL: ${link.productUrl}`,
+      });
+      continue;
+    }
+
     const scraper = getScraperByPlatform(link.platformName);
     if (!scraper) {
       skippedResults.push({
