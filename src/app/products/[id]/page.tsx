@@ -1,8 +1,8 @@
 // src/app/products/[id]/page.tsx — 상품 상세 → 구매처 확인
 
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CloudinaryImage } from "@/components/CloudinaryImage";
 import { PurchaseLinkList } from "@/components/PurchaseLinkList";
 import { getProductById, getProductLinks } from "@/lib/data/products";
 
@@ -39,7 +39,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
       {/* 상품 정보 */}
       <div className="flex flex-col gap-4 md:flex-row md:gap-6">
         <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-gray-100 md:w-72 md:shrink-0">
-          <Image
+          <CloudinaryImage
             src={product.productImageUrl}
             alt={`${product.brandName} ${product.productName}`}
             fill

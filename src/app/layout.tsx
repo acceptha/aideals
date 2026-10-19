@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { SessionProvider } from "@/components/SessionProvider.client";
 import { AuthButton } from "@/components/AuthButton.client";
@@ -8,17 +8,18 @@ export const metadata: Metadata = {
   title: "aideals — 셀럽 스타일 패션 비교",
   description: "셀럽 스타일을 탐색하고 유사 상품을 브랜드·가격별로 비교하세요",
   manifest: "/manifest.json",
-  themeColor: "#111827",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "aideals",
   },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#111827",
 };
 
 export default function RootLayout({
@@ -42,9 +43,6 @@ export default function RootLayout({
                 <nav className="flex gap-4 text-sm text-gray-500">
                   <Link href="/styles" className="hover:text-gray-900">
                     스타일 탐색
-                  </Link>
-                  <Link href="/admin" className="hover:text-gray-900">
-                    관리자
                   </Link>
                 </nav>
                 <AuthButton />

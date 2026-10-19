@@ -1,9 +1,9 @@
 // src/app/styles/[id]/page.tsx — 스타일 상세 → 유사 상품 비교
 
 import { Suspense } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CloudinaryImage } from "@/components/CloudinaryImage";
 import { Badge } from "@/components/ui/Badge";
 import { PriceFilter } from "@/components/PriceFilter.client";
 import { ProductCompareCard } from "@/components/ProductCompareCard";
@@ -70,7 +70,7 @@ export default async function StyleDetailPage({ params, searchParams }: StyleDet
       {/* 셀럽 스타일 정보 */}
       <div className="flex flex-col gap-4 md:flex-row md:gap-6">
         <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-gray-100 md:w-80 md:shrink-0">
-          <Image
+          <CloudinaryImage
             src={style.imageUrl}
             alt={`${style.celebName} 스타일`}
             fill

@@ -47,6 +47,7 @@ describe("GET /api/search", () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
+    expect(body.code).toBe("MISSING_REQUIRED_FIELD");
   });
 
   it("type=celeb이면 celeb 타입으로 searchAll을 호출한다", async () => {
@@ -79,7 +80,6 @@ describe("GET /api/search", () => {
 
     const req = new NextRequest("http://localhost:3000/api/search?q=코트&type=product");
     const res = await GET(req, mockCtx);
-    const body = await res.json();
 
     expect(res.status).toBe(200);
     expect(mockSearchAll).toHaveBeenCalledWith("코트", "product");

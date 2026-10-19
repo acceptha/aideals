@@ -77,7 +77,10 @@ export function buildImageUrl(
  * 아닌 경우 Next.js 기본 최적화에 맡긴다.
  */
 export function cloudinaryLoader({ src, width, quality }: ImageLoaderProps): string {
-  if (!isCloudinaryUrl(src)) return `${src}?w=${width}`;
+  if (!isCloudinaryUrl(src)) {
+    // 이미 쿼리스트링이 있는 URL(Unsplash 등)은 &로 이어 붙인다
+    return `${src}${src.includes("?") ? "&" : "?"}w=${width}`;
+  }
 
   const transform = [
     `w_${width}`,

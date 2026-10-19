@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Writable } from "node:stream";
 import { NextRequest } from "next/server";
 import type { RouteContext } from "@/lib/api/withErrorHandler";
 
@@ -13,8 +14,26 @@ vi.mock("@/lib/env", () => ({
 }));
 
 // ── cloudinary mock ──
-const mockUpload = vi.fn();
-let mockCloudinary: unknown = { uploader: { upload: mockUpload } };
+// upload_stream(options, callback) → Writable. 스트림을 끝까지 소비한 뒤
+// mockUploadResult 결과로 callback을 호출한다 (Error면 실패 콜백).
+let mockUploadResult: unknown;
+const mockUploadStream = vi.fn(
+  (_options: unknown, callback: (error?: unknown, res?: unknown) => void) =>
+    new Writable({
+      write(_chunk, _enc, next) {
+        next();
+      },
+      final(done) {
+        if (mockUploadResult instanceof Error) {
+          callback({ message: mockUploadResult.message }, undefined);
+        } else {
+          callback(undefined, mockUploadResult);
+        }
+        done();
+      },
+    }),
+);
+let mockCloudinary: unknown = { uploader: { upload_stream: mockUploadStream } };
 vi.mock("@/lib/cloudinary", () => ({
   get cloudinary() {
     return mockCloudinary;
@@ -72,7 +91,8 @@ describe("POST /api/admin/upload", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockEnv.CRON_SECRET = TOKEN;
-    mockCloudinary = { uploader: { upload: mockUpload } };
+    mockUploadResult = undefined;
+    mockCloudinary = { uploader: { upload_stream: mockUploadStream } };
   });
 
   // ── 인증 ──
@@ -152,7 +172,7 @@ describe("POST /api/admin/upload", () => {
   // ── 성공 ──
 
   it("유효한 요청이면 업로드 결과를 반환한다", async () => {
-    mockUpload.mockResolvedValue({
+    mockUploadResult = {
       secure_url:
         "https://res.cloudinary.com/xxx/image/upload/v1/aideals/products/test.jpg",
       public_id: "aideals/products/test",
@@ -160,7 +180,7 @@ describe("POST /api/admin/upload", () => {
       height: 500,
       format: "jpg",
       bytes: 12345,
-    });
+    };
 
     const res = await POST(
       createReq({ token: TOKEN, folder: "products", tags: "outer,winter" }),
@@ -177,20 +197,20 @@ describe("POST /api/admin/upload", () => {
       format: "jpg",
       bytes: 12345,
     });
-    expect(mockUpload).toHaveBeenCalledWith(
-      expect.stringContaining("data:image/jpeg;base64,"),
+    expect(mockUploadStream).toHaveBeenCalledWith(
       expect.objectContaining({
         folder: "aideals/products",
         tags: ["outer", "winter"],
         resource_type: "image",
       }),
+      expect.any(Function),
     );
   });
 
   // ── 실패 ──
 
   it("Cloudinary 업로드 실패 시 502를 반환한다", async () => {
-    mockUpload.mockRejectedValue(new Error("Cloudinary timeout"));
+    mockUploadResult = new Error("Cloudinary timeout");
 
     const res = await POST(createReq({ token: TOKEN }), dummyCtx);
     const body = await res.json();

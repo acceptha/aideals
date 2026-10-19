@@ -113,5 +113,6 @@ describe("GET /api/styles", () => {
     const body = await res.json();
 
     expect(res.status).toBe(400);
+    expect(body.code).toBe("INVALID_PAGINATION");
   });
 });

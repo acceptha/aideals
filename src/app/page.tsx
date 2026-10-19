@@ -1,6 +1,9 @@
 import { CategoryGridClient } from "@/components/CategoryGrid.client";
 import { getCategories } from "@/lib/data/categories";
 
+// 빌드 시 DB 조회를 피하고 요청마다 렌더링한다 (데이터는 Redis 캐시로 처리)
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const categories = await getCategories();
 

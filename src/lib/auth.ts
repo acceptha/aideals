@@ -35,6 +35,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers,
   secret: env.NEXTAUTH_SECRET,
+  // Vercel 외 환경(next start, 리버스 프록시)에서도 Host 헤더를 신뢰한다
+  trustHost: true,
   session: { strategy: "database" },
   pages: {
     signIn: "/login",
