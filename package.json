@@ -13,7 +13,8 @@
     "validate-env:skip-db": "npx tsx scripts/validate-env.ts --skip-db",
     "commit": "bash scripts/commit.sh",
     "commit:only": "bash scripts/commit.sh --no-push",
-    "crawl": "npx tsx scripts/crawl-prices.ts"
+    "crawl": "npx tsx scripts/crawl-prices.ts",
+    "set-admin": "npx tsx scripts/set-admin.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",

@@ -44,8 +44,19 @@ cp .env.example .env
 ### 3. DB 설정
 
 ```bash
-npx prisma migrate dev --name init
+npx prisma migrate deploy   # 기존 마이그레이션 적용 (새 DB 포함)
 npx prisma db seed
+```
+
+### 3-1. 관리자 지정
+
+`/login`에서 한 번 로그인한 뒤, 해당 계정에 관리자 권한을 부여한다.
+카카오는 이메일 동의 항목이 없으면 email이 비어 있으므로 `--list`로 id를 확인해 지정한다.
+
+```bash
+npm run set-admin -- --list              # 가입자 목록 (id, email, role)
+npm run set-admin -- <email|userId>      # 관리자 권한 부여
+npm run set-admin -- <email|userId> --revoke
 ```
 
 ### 4. 개발 서버
@@ -75,6 +86,7 @@ npx prisma migrate dev --name <설명>      # 마이그레이션
 npx prisma generate                       # 클라이언트 재생성
 npx prisma studio                         # DB GUI
 npx prisma db seed                        # 시드 데이터
+npm run set-admin -- <email|userId>       # 관리자 권한 부여 (--list, --revoke)
 
 # 테스트
 npx vitest run                            # 전체 테스트 실행

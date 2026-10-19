@@ -196,6 +196,7 @@
 | CLI 크롤링 스크립트 (`npm run crawl`) | `scripts/crawl-prices.ts` |
 | 시드 이미지 Cloudinary 마이그레이션 (`npx tsx scripts/migrate-seed-images.ts`) | `scripts/migrate-seed-images.ts` |
 | 환경변수 검증 스크립트 | `scripts/validate-env.ts` |
+| 관리자 권한 부여/회수 (`npm run set-admin -- <email\|userId>`) | `scripts/set-admin.ts` |
 
 ### 현재 src 구조
 

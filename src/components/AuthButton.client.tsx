@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 
 export const AuthButton = () => {
@@ -14,6 +15,11 @@ export const AuthButton = () => {
   if (session?.user) {
     return (
       <div className="flex items-center gap-2">
+        {session.user.role === "admin" && (
+          <Link href="/admin" className="text-sm text-gray-500 hover:text-gray-900">
+            관리자
+          </Link>
+        )}
         <span className="text-sm text-gray-700">{session.user.name}</span>
         <button
           onClick={() => signOut()}
