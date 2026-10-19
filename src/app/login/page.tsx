@@ -1,4 +1,4 @@
-import { auth, signIn } from "@/lib/auth";
+import { auth, enabledProviders, signIn } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export const metadata = {
@@ -20,33 +20,43 @@ export default async function LoginPage() {
         </div>
 
         <div className="space-y-3">
-          <form
-            action={async () => {
-              "use server";
-              await signIn("kakao", { redirectTo: "/" });
-            }}
-          >
-            <button
-              type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#FEE500] px-4 py-3 text-sm font-medium text-[#191919] hover:bg-[#FDD800]"
-            >
-              카카오로 시작하기
-            </button>
-          </form>
+          {!enabledProviders.kakao && !enabledProviders.google && (
+            <p className="text-center text-sm text-gray-500">
+              현재 사용 가능한 로그인 수단이 없습니다
+            </p>
+          )}
 
-          <form
-            action={async () => {
-              "use server";
-              await signIn("google", { redirectTo: "/" });
-            }}
-          >
-            <button
-              type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          {enabledProviders.kakao && (
+            <form
+              action={async () => {
+                "use server";
+                await signIn("kakao", { redirectTo: "/" });
+              }}
             >
-              Google로 시작하기
-            </button>
-          </form>
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#FEE500] px-4 py-3 text-sm font-medium text-[#191919] hover:bg-[#FDD800]"
+              >
+                카카오로 시작하기
+              </button>
+            </form>
+          )}
+
+          {enabledProviders.google && (
+            <form
+              action={async () => {
+                "use server";
+                await signIn("google", { redirectTo: "/" });
+              }}
+            >
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Google로 시작하기
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>

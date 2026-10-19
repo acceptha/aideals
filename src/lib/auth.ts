@@ -13,7 +13,13 @@ import type { Provider } from "next-auth/providers";
 
 const providers: Provider[] = [];
 
-if (env.KAKAO_CLIENT_ID && env.KAKAO_CLIENT_SECRET) {
+/** 환경변수가 설정되어 활성화된 소셜 로그인 (로그인 페이지 버튼 노출 기준) */
+export const enabledProviders = {
+  kakao: Boolean(env.KAKAO_CLIENT_ID && env.KAKAO_CLIENT_SECRET),
+  google: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
+} as const;
+
+if (enabledProviders.kakao) {
   providers.push(
     Kakao({
       clientId: env.KAKAO_CLIENT_ID,
@@ -22,7 +28,7 @@ if (env.KAKAO_CLIENT_ID && env.KAKAO_CLIENT_SECRET) {
   );
 }
 
-if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
+if (enabledProviders.google) {
   providers.push(
     Google({
       clientId: env.GOOGLE_CLIENT_ID,
