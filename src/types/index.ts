@@ -17,6 +17,10 @@ export interface CelebStyle {
   colors: string[];
   gender: string;
   season: string;
+  sourceUrl: string | null;
+  photographer: string | null;
+  sourceName: string | null;
+  licenseType: string | null;
   createdAt: Date;
 }
 

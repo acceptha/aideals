@@ -115,6 +115,7 @@ GitHub Actions에서 PR마다 `vitest run`을 실행한다. 테스트 실패 시
 | `CLOUDINARY_API_KEY` | ❌ | 3 | 서버 | Cloudinary API 키 | `123456789` |
 | `CLOUDINARY_API_SECRET` | ❌ | 3 | 서버 | Cloudinary API 시크릿 | `abcDEF...` |
 | `CRON_SECRET` | ❌ | 3 | 서버 | Vercel Cron Job 인증 시크릿 (16자 이상) | `openssl rand -base64 32` |
+| `UNSPLASH_ACCESS_KEY` | ❌ | 3 | 서버 | Unsplash API Access Key (관리자 이미지 검색용) | `abcDEF123...` |
 | `NEXTAUTH_URL` | ❌ | 4 | 서버 | 인증 콜백 기준 URL | `http://localhost:3000` |
 | `NEXTAUTH_SECRET` | ❌ | 4 | 서버 | 세션 암호화 시크릿 (32자 이상 랜덤 문자열) | `openssl rand -base64 32` |
 | `KAKAO_CLIENT_ID` | ❌ | 4 | 서버 | 카카오 OAuth 클라이언트 ID | `abcd1234...` |

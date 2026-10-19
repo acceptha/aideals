@@ -138,6 +138,19 @@ export const ENV_RULES: EnvVarRule[] = [
     },
   },
 
+  // ── Phase 3 — Unsplash (관리자 이미지 검색용) ──
+  {
+    key: "UNSPLASH_ACCESS_KEY",
+    required: false,
+    phase: 3,
+    serverOnly: true,
+    description: "Unsplash API Access Key (관리자 이미지 검색용)",
+    validate: (v) => {
+      if (v.length < 20) return "Access Key가 너무 짧습니다 (최소 20자)";
+      return null;
+    },
+  },
+
   // ── Phase 4 ──
   {
     key: "NEXTAUTH_URL",

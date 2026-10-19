@@ -60,3 +60,62 @@ export interface SearchParams {
   q: string;
   type?: "celeb" | "brand" | "product";
 }
+
+// ── 관리자 이미지 검색 (Unsplash 등 외부 소스) ──
+
+export type ImageSearchSource = "unsplash";
+
+// GET /api/admin/images/search
+export interface ImageSearchParams {
+  q: string;
+  source: ImageSearchSource;
+  page: number;
+  perPage: number;
+}
+
+export interface ImageSearchResult {
+  id: string;
+  thumbUrl: string;
+  regularUrl: string;
+  fullUrl: string;
+  width: number;
+  height: number;
+  description: string | null;
+  photographer: string;
+  photographerUrl: string;
+  sourceUrl: string;
+  sourceName: string;
+  /** 사용 시 통계 트리거가 필요한 외부 소스용 (Unsplash download_location 등) */
+  downloadTracker?: string;
+}
+
+// POST /api/admin/images/import
+export interface ImageImportRequest {
+  /** Cloudinary로 복사할 원본 이미지 URL */
+  imageUrl: string;
+  /** 출처 페이지 URL (스타일 상세에 표기) */
+  sourceUrl: string;
+  /** 작가/촬영자 이름 (스타일 상세에 표기) */
+  photographer: string;
+  /** 소스 이름 (예: "Unsplash") */
+  sourceName: string;
+  /** 라이선스 식별자 (예: "unsplash", "cc-by") */
+  licenseType?: string;
+  /** Cloudinary 폴더 (styles | products | platforms | categories) */
+  folder?: string;
+  /** Unsplash 다운로드 트리거 URL (있으면 호출) */
+  downloadTracker?: string;
+}
+
+export interface ImageImportResult {
+  /** Cloudinary CDN URL */
+  cloudinaryUrl: string;
+  publicId: string;
+  width: number;
+  height: number;
+  /** 입력으로 받은 출처 메타데이터를 그대로 echo — 클라이언트가 폼에 채우기 편하게 */
+  photographer: string;
+  sourceUrl: string;
+  sourceName: string;
+  licenseType: string | null;
+}

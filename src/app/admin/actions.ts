@@ -87,6 +87,20 @@ export async function deleteCategoryAction(id: string): Promise<ActionResult> {
 
 // ── Styles ──
 
+/** FormData에서 출처 메타데이터 4개를 읽어 nullable 객체로 반환 */
+function readSourceMeta(formData: FormData) {
+  const sourceUrl = ((formData.get("sourceUrl") as string) ?? "").trim();
+  const photographer = ((formData.get("photographer") as string) ?? "").trim();
+  const sourceName = ((formData.get("sourceName") as string) ?? "").trim();
+  const licenseType = ((formData.get("licenseType") as string) ?? "").trim();
+  return {
+    sourceUrl: sourceUrl || null,
+    photographer: photographer || null,
+    sourceName: sourceName || null,
+    licenseType: licenseType || null,
+  };
+}
+
 export async function createStyleAction(
   formData: FormData,
 ): Promise<ActionResult> {
@@ -117,6 +131,7 @@ export async function createStyleAction(
     colors,
     gender,
     season,
+    ...readSourceMeta(formData),
   });
   revalidatePath("/admin/styles");
   return { success: true };
@@ -144,6 +159,7 @@ export async function updateStyleAction(
     colors,
     gender: (formData.get("gender") as string) || undefined,
     season: (formData.get("season") as string) || undefined,
+    ...readSourceMeta(formData),
   });
   revalidatePath("/admin/styles");
   return { success: true };

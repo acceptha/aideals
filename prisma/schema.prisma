@@ -75,16 +75,20 @@ model Category {
 }
 
 model CelebStyle {
-  id         String           @id @default(cuid())
-  celebName  String           @map("celeb_name")
-  imageUrl   String           @map("image_url")
-  categoryId String           @map("category_id")
-  colors     String[]
-  gender     String
-  season     String
-  createdAt  DateTime         @default(now()) @map("created_at")
-  category   Category         @relation(fields: [categoryId], references: [id])
-  products   SimilarProduct[]
+  id           String           @id @default(cuid())
+  celebName    String           @map("celeb_name")
+  imageUrl     String           @map("image_url")
+  categoryId   String           @map("category_id")
+  colors       String[]
+  gender       String
+  season       String
+  sourceUrl    String?          @map("source_url")
+  photographer String?
+  sourceName   String?          @map("source_name")
+  licenseType  String?          @map("license_type")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  category     Category         @relation(fields: [categoryId], references: [id])
+  products     SimilarProduct[]
 
   @@map("celeb_styles")
 }

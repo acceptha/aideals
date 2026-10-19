@@ -78,6 +78,10 @@ export const createStyle = async (data: {
   colors: string[];
   gender: string;
   season: string;
+  sourceUrl?: string | null;
+  photographer?: string | null;
+  sourceName?: string | null;
+  licenseType?: string | null;
 }) => {
   const result = await prisma.celebStyle.create({ data });
   await invalidateCache("styles:*");
@@ -93,6 +97,10 @@ export const updateStyle = async (
     colors?: string[];
     gender?: string;
     season?: string;
+    sourceUrl?: string | null;
+    photographer?: string | null;
+    sourceName?: string | null;
+    licenseType?: string | null;
   },
 ) => {
   const result = await prisma.celebStyle.update({ where: { id }, data });

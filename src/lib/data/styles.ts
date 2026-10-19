@@ -12,6 +12,10 @@ const STYLE_SELECT = {
   colors: true,
   gender: true,
   season: true,
+  sourceUrl: true,
+  photographer: true,
+  sourceName: true,
+  licenseType: true,
   createdAt: true,
 } as const;
 

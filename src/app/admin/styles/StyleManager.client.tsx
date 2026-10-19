@@ -1,11 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useTransition } from "react";
+import { ImageSearchModal } from "@/components/admin/ImageSearchModal.client";
 import {
   createStyleAction,
   updateStyleAction,
   deleteStyleAction,
 } from "../actions";
+import type { ImageImportResult } from "@/types/api";
 
 interface StyleRow {
   id: string;
@@ -15,6 +18,10 @@ interface StyleRow {
   colors: string[];
   gender: string;
   season: string;
+  sourceUrl: string | null;
+  photographer: string | null;
+  sourceName: string | null;
+  licenseType: string | null;
   createdAt: Date;
   category: { name: string };
   _count: { products: number };
@@ -28,17 +35,61 @@ interface Props {
 const GENDERS = ["male", "female"] as const;
 const SEASONS = ["spring", "summer", "fall", "winter"] as const;
 
+interface ImageState {
+  imageUrl: string;
+  sourceUrl: string;
+  photographer: string;
+  sourceName: string;
+  licenseType: string;
+}
+
+const emptyImage: ImageState = {
+  imageUrl: "",
+  sourceUrl: "",
+  photographer: "",
+  sourceName: "",
+  licenseType: "",
+};
+
+const fromImport = (r: ImageImportResult): ImageState => ({
+  imageUrl: r.cloudinaryUrl,
+  sourceUrl: r.sourceUrl,
+  photographer: r.photographer,
+  sourceName: r.sourceName,
+  licenseType: r.licenseType ?? "",
+});
+
+const fromRow = (s: StyleRow): ImageState => ({
+  imageUrl: s.imageUrl,
+  sourceUrl: s.sourceUrl ?? "",
+  photographer: s.photographer ?? "",
+  sourceName: s.sourceName ?? "",
+  licenseType: s.licenseType ?? "",
+});
+
 export const StyleManager = ({ initialData, categories }: Props) => {
   const [editId, setEditId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // 새 스타일 폼의 이미지 상태 (검색 결과 또는 직접 URL 입력)
+  const [createImage, setCreateImage] = useState<ImageState>(emptyImage);
+  // 수정 폼의 이미지 상태 (편집 진입 시 기존 값으로 초기화)
+  const [editImage, setEditImage] = useState<ImageState>(emptyImage);
+
+  // 이미지 검색 모달 — "create" | "edit" | null
+  const [searchTarget, setSearchTarget] = useState<"create" | "edit" | null>(null);
+
   const handleCreate = (formData: FormData) => {
     startTransition(async () => {
       const result = await createStyleAction(formData);
       if (!result.success) setError(result.error ?? "생성 실패");
-      else { setShowForm(false); setError(null); }
+      else {
+        setShowForm(false);
+        setCreateImage(emptyImage);
+        setError(null);
+      }
     });
   };
 
@@ -46,7 +97,11 @@ export const StyleManager = ({ initialData, categories }: Props) => {
     startTransition(async () => {
       const result = await updateStyleAction(id, formData);
       if (!result.success) setError(result.error ?? "수정 실패");
-      else { setEditId(null); setError(null); }
+      else {
+        setEditId(null);
+        setEditImage(emptyImage);
+        setError(null);
+      }
     });
   };
 
@@ -59,12 +114,27 @@ export const StyleManager = ({ initialData, categories }: Props) => {
     });
   };
 
+  const handleImported = (r: ImageImportResult) => {
+    if (searchTarget === "create") setCreateImage(fromImport(r));
+    else if (searchTarget === "edit") setEditImage(fromImport(r));
+  };
+
+  const startEdit = (style: StyleRow) => {
+    setEditId(style.id);
+    setEditImage(fromRow(style));
+    setShowForm(false);
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">스타일 관리</h1>
         <button
-          onClick={() => { setShowForm(!showForm); setEditId(null); }}
+          onClick={() => {
+            setShowForm(!showForm);
+            setEditId(null);
+            setCreateImage(emptyImage);
+          }}
           className="rounded-md bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800"
         >
           {showForm ? "취소" : "추가"}
@@ -78,9 +148,15 @@ export const StyleManager = ({ initialData, categories }: Props) => {
       {showForm && (
         <form action={handleCreate} className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-semibold text-gray-700">새 스타일</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+
+          <ImagePicker
+            image={createImage}
+            onChange={setCreateImage}
+            onSearch={() => setSearchTarget("create")}
+          />
+
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <input name="celebName" placeholder="셀럽명" required className="rounded-md border border-gray-300 px-3 py-2 text-sm" />
-            <input name="imageUrl" placeholder="이미지 URL" required className="rounded-md border border-gray-300 px-3 py-2 text-sm" />
             <select name="categoryId" required className="rounded-md border border-gray-300 px-3 py-2 text-sm">
               <option value="">카테고리 선택</option>
               {categories.map((c) => (
@@ -97,6 +173,7 @@ export const StyleManager = ({ initialData, categories }: Props) => {
             </select>
             <input name="colors" placeholder="색상 (쉼표 구분)" className="rounded-md border border-gray-300 px-3 py-2 text-sm" />
           </div>
+
           <button type="submit" disabled={isPending} className="mt-3 rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50">
             {isPending ? "저장 중..." : "저장"}
           </button>
@@ -112,6 +189,7 @@ export const StyleManager = ({ initialData, categories }: Props) => {
               <th className="pb-2 font-medium">성별</th>
               <th className="pb-2 font-medium">시즌</th>
               <th className="pb-2 font-medium">색상</th>
+              <th className="pb-2 font-medium">출처</th>
               <th className="pb-2 font-medium">상품 수</th>
               <th className="pb-2 font-medium">작업</th>
             </tr>
@@ -120,22 +198,28 @@ export const StyleManager = ({ initialData, categories }: Props) => {
             {initialData.map((style) =>
               editId === style.id ? (
                 <tr key={style.id} className="bg-yellow-50">
-                  <td colSpan={7} className="p-3">
-                    <form action={(fd) => handleUpdate(style.id, fd)} className="flex flex-wrap items-center gap-3">
-                      <input name="celebName" defaultValue={style.celebName} required className="rounded-md border border-gray-300 px-3 py-1.5 text-sm" />
-                      <input name="imageUrl" defaultValue={style.imageUrl} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm" />
-                      <select name="categoryId" defaultValue={style.categoryId} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm">
-                        {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                      <select name="gender" defaultValue={style.gender} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm">
-                        {GENDERS.map((g) => <option key={g} value={g}>{g === "male" ? "남성" : "여성"}</option>)}
-                      </select>
-                      <select name="season" defaultValue={style.season} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm">
-                        {SEASONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                      <input name="colors" defaultValue={style.colors.join(", ")} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm" />
-                      <button type="submit" disabled={isPending} className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white disabled:opacity-50">저장</button>
-                      <button type="button" onClick={() => setEditId(null)} className="text-sm text-gray-500">취소</button>
+                  <td colSpan={8} className="p-3">
+                    <form action={(fd) => handleUpdate(style.id, fd)} className="space-y-3">
+                      <ImagePicker
+                        image={editImage}
+                        onChange={setEditImage}
+                        onSearch={() => setSearchTarget("edit")}
+                      />
+                      <div className="flex flex-wrap items-center gap-3">
+                        <input name="celebName" defaultValue={style.celebName} required className="rounded-md border border-gray-300 px-3 py-1.5 text-sm" />
+                        <select name="categoryId" defaultValue={style.categoryId} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm">
+                          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                        <select name="gender" defaultValue={style.gender} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm">
+                          {GENDERS.map((g) => <option key={g} value={g}>{g === "male" ? "남성" : "여성"}</option>)}
+                        </select>
+                        <select name="season" defaultValue={style.season} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm">
+                          {SEASONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        <input name="colors" defaultValue={style.colors.join(", ")} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm" />
+                        <button type="submit" disabled={isPending} className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white disabled:opacity-50">저장</button>
+                        <button type="button" onClick={() => setEditId(null)} className="text-sm text-gray-500">취소</button>
+                      </div>
                     </form>
                   </td>
                 </tr>
@@ -146,9 +230,12 @@ export const StyleManager = ({ initialData, categories }: Props) => {
                   <td className="py-3 text-gray-500">{style.gender === "male" ? "남성" : "여성"}</td>
                   <td className="py-3 text-gray-500">{style.season}</td>
                   <td className="py-3 text-gray-500">{style.colors.join(", ")}</td>
+                  <td className="py-3 text-xs text-gray-400">
+                    {style.photographer ? `${style.photographer} / ${style.sourceName ?? ""}` : "-"}
+                  </td>
                   <td className="py-3 text-gray-500">{style._count.products}</td>
                   <td className="py-3">
-                    <button onClick={() => { setEditId(style.id); setShowForm(false); }} className="mr-2 text-blue-600 hover:text-blue-800">수정</button>
+                    <button onClick={() => startEdit(style)} className="mr-2 text-blue-600 hover:text-blue-800">수정</button>
                     <button onClick={() => handleDelete(style.id, style.celebName)} disabled={isPending} className="text-red-600 hover:text-red-800 disabled:opacity-50">삭제</button>
                   </td>
                 </tr>
@@ -157,6 +244,74 @@ export const StyleManager = ({ initialData, categories }: Props) => {
           </tbody>
         </table>
       </div>
+
+      <ImageSearchModal
+        open={searchTarget !== null}
+        folder="styles"
+        onClose={() => setSearchTarget(null)}
+        onImported={handleImported}
+      />
     </div>
   );
 };
+
+interface ImagePickerProps {
+  image: ImageState;
+  onChange: (image: ImageState) => void;
+  onSearch: () => void;
+}
+
+const ImagePicker = ({ image, onChange, onSearch }: ImagePickerProps) => (
+  <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
+    <div className="flex items-start gap-3">
+      <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md bg-gray-200">
+        {image.imageUrl ? (
+          <Image
+            src={image.imageUrl}
+            alt="미리보기"
+            fill
+            sizes="96px"
+            className="object-cover"
+            unoptimized
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-[10px] text-gray-400">
+            이미지 없음
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 space-y-2">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={image.imageUrl}
+            onChange={(e) => onChange({ ...image, imageUrl: e.target.value })}
+            placeholder="이미지 URL (직접 입력 또는 검색)"
+            required
+            name="imageUrl"
+            className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+          />
+          <button
+            type="button"
+            onClick={onSearch}
+            className="rounded-md bg-gray-900 px-3 py-1.5 text-sm text-white hover:bg-gray-800"
+          >
+            🔍 검색
+          </button>
+        </div>
+
+        {image.photographer && (
+          <p className="text-[11px] text-gray-500">
+            출처: {image.photographer} / {image.sourceName}
+          </p>
+        )}
+
+        <input type="hidden" name="sourceUrl" value={image.sourceUrl} />
+        <input type="hidden" name="photographer" value={image.photographer} />
+        <input type="hidden" name="sourceName" value={image.sourceName} />
+        <input type="hidden" name="licenseType" value={image.licenseType} />
+      </div>
+    </div>
+  </div>
+);

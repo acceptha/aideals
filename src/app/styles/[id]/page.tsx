@@ -88,6 +88,25 @@ export default async function StyleDetailPage({ params, searchParams }: StyleDet
               <Badge key={color} label={color} variant="tag" />
             ))}
           </div>
+          {style.photographer && style.sourceName && (
+            <p className="text-xs text-gray-400">
+              Photo:{" "}
+              {style.sourceUrl ? (
+                <a
+                  href={style.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-gray-600"
+                >
+                  {style.photographer} / {style.sourceName}
+                </a>
+              ) : (
+                <span>
+                  {style.photographer} / {style.sourceName}
+                </span>
+              )}
+            </p>
+          )}
         </div>
       </div>
 

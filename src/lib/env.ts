@@ -71,6 +71,7 @@ export const env = {
   get NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME() { return getEnv().NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME; },
   get CLOUDINARY_API_KEY() { return getEnv().CLOUDINARY_API_KEY; },
   get CLOUDINARY_API_SECRET() { return getEnv().CLOUDINARY_API_SECRET; },
+  get UNSPLASH_ACCESS_KEY() { return getEnv().UNSPLASH_ACCESS_KEY; },
 
   // ──────────────────────────────────────────────
   // Phase 4 — 인증 (없으면 인증 비활성)
