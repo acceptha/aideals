@@ -22,6 +22,9 @@ function createRedisClient(): Redis | null {
   return new Redis({
     url: env.UPSTASH_REDIS_REST_URL,
     token: env.UPSTASH_REDIS_REST_TOKEN,
+    // 기본값(5회 지수 백오프)은 Redis 장애 시 요청마다 수 초를 지연시킨다.
+    // 캐시는 실패해도 DB로 폴백하므로 1회만 짧게 재시도한다.
+    retry: { retries: 1, backoff: () => 50 },
   });
 }
 

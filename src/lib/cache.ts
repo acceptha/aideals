@@ -19,6 +19,32 @@ export const CACHE_TTL = {
   PRICE: 180,         // 3분 — 가격 데이터 (가장 자주 변함)
 } as const;
 
+/** Redis 장애 감지 후 캐시를 건너뛰는 시간 (ms) */
+const CIRCUIT_OPEN_MS = 30_000;
+
+// ── 서킷 브레이커 ──
+// Redis 호출이 실패하면 일정 시간 동안 Redis를 건너뛰고 DB로 바로 간다.
+// 장애 중 매 요청이 Redis 타임아웃을 기다리며 느려지는 것을 막는다.
+let circuitOpenUntil = 0;
+
+const isCircuitOpen = (): boolean => Date.now() < circuitOpenUntil;
+
+const openCircuit = (context: string, data: Record<string, unknown>): void => {
+  const wasOpen = isCircuitOpen();
+  circuitOpenUntil = Date.now() + CIRCUIT_OPEN_MS;
+  if (!wasOpen) {
+    logger.warn(`${context} — ${CIRCUIT_OPEN_MS / 1000}초간 캐시 비활성화`, {
+      context: "cache",
+      data,
+    });
+  }
+};
+
+/** 테스트 전용: 서킷 상태 초기화 */
+export const resetCacheCircuit = (): void => {
+  circuitOpenUntil = 0;
+};
+
 /**
  * Redis 캐시 래퍼.
  * 캐시에 데이터가 있으면 반환, 없으면 fetcher 실행 후 캐시에 저장.
@@ -32,7 +58,7 @@ export const withCache = async <T>(
   ttl: number,
   fetcher: () => Promise<T>,
 ): Promise<T> => {
-  if (!redis) return fetcher();
+  if (!redis || isCircuitOpen()) return fetcher();
 
   try {
     const cached = await redis.get<T>(key);
@@ -42,10 +68,8 @@ export const withCache = async <T>(
     }
   } catch (err) {
     // Redis 장애 시 DB로 폴백
-    logger.warn("캐시 조회 실패, DB 폴백", {
-      context: "cache",
-      data: { key, error: (err as Error).message },
-    });
+    openCircuit("캐시 조회 실패, DB 폴백", { key, error: (err as Error).message });
+    return fetcher();
   }
 
   const data = await fetcher();
@@ -53,10 +77,7 @@ export const withCache = async <T>(
   try {
     await redis.set(key, data, { ex: ttl });
   } catch (err) {
-    logger.warn("캐시 저장 실패", {
-      context: "cache",
-      data: { key, error: (err as Error).message },
-    });
+    openCircuit("캐시 저장 실패", { key, error: (err as Error).message });
   }
 
   return data;
@@ -64,6 +85,7 @@ export const withCache = async <T>(
 
 /** 패턴 기반 캐시 무효화 (키 prefix 삭제) */
 export const invalidateCache = async (pattern: string): Promise<void> => {
+  // 서킷이 열려 있어도 시도한다 — 건너뛰면 Redis 복구 후 stale 캐시가 TTL 동안 남는다
   if (!redis) return;
   const client = redis;
 
