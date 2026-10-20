@@ -24,6 +24,9 @@ Category ──1:N──▶ CelebStyle ──1:N──▶ SimilarProduct ──1
 - `similarityScore` 범위: 0~1
 - `inStock` 기본값: `true`
 - `sortOrder`는 카테고리 표시 순서 (낮을수록 먼저 표시)
+- CelebStyle 출처 메타데이터(`sourceUrl`, `photographer`, `sourceName`, `licenseType`)는 모두 nullable. `photographer`와 `sourceName`이 둘 다 있을 때만 스타일 상세에 "Photo: 작가 / 소스"로 표기
+- User `role` 허용 값: `"user"`(기본) | `"admin"`. 관리자 지정은 `npm run set-admin`
+- PurchaseLink `productUrl`이 검색 결과 페이지(`/search`, `searchResult`)면 크롤러가 가격을 갱신하지 않는다 (`isSearchPageUrl`)
 
 ---
 
@@ -35,3 +38,12 @@ Category ──1:N──▶ CelebStyle ──1:N──▶ SimilarProduct ──1
 | CelebStyle | `celeb_styles` |
 | SimilarProduct | `similar_products` |
 | PurchaseLink | `purchase_links` |
+| User / Account / Session / VerificationToken | `users` / `accounts` / `sessions` / `verification_tokens` (NextAuth Prisma Adapter) |
+
+---
+
+## 보안 (RLS)
+
+- public 스키마의 모든 테이블은 RLS가 켜져 있고 정책은 없다 → Supabase REST API(anon/publishable 키)로는 읽기·쓰기 모두 불가
+- 앱은 Prisma로 테이블 소유자(`postgres`) 계정을 사용해 RLS 영향을 받지 않는다
+- 새 테이블을 추가하는 마이그레이션에는 `ALTER TABLE "<table>" ENABLE ROW LEVEL SECURITY;`를 함께 넣는다

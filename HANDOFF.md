@@ -1,9 +1,41 @@
 # HANDOFF — 프로젝트 진행 상태
 
 > **작성일:** 2026-03-18
-> **최종 수정:** 2026-04-20
-> **현재 단계:** Phase 1~4 완료
+> **최종 수정:** 2026-10-20
+> **현재 단계:** Phase 1~4 완료 + 운영 환경 복구 (https://aideals-ten.vercel.app)
 > **목표:** 카테고리 선택 → 셀럽 스타일 탐색 → 유사 상품 비교 → 구매처 확인 전체 플로우 완성
+
+---
+
+## 운영 환경 (2026-10-20 기준)
+
+| 구성 | 현황 |
+|------|------|
+| 배포 | Vercel 프로젝트 `aideals` → https://aideals-ten.vercel.app (GitHub `main` push 시 자동 배포) |
+| 함수 리전 | `hnd1` (도쿄) — DB와 같은 리전. `vercel.json`의 `regions` |
+| DB | Supabase `aideals` (ref `dvhpowmpeziupfciuvyp`, ap-northeast-1). 마이그레이션 5개 적용, public 테이블 9개 RLS 활성화 |
+| 캐시 | Upstash Redis 없음 (기존 인스턴스 소멸). Redis 없이 DB 직접 조회로 동작 |
+| 이미지 | Cloudinary (`dpemndoq8`) 정상 |
+| 인증 | 카카오 OAuth만 활성. Google·Unsplash 키 미발급 |
+| 크론 | `/api/cron/crawl` 매일 00:00 UTC (`CRON_SECRET` 인증) |
+
+### Vercel 환경변수
+
+| 키 | 대상 | 비고 |
+|----|------|------|
+| `DATABASE_URL`, `DIRECT_URL` | 전체 | Supabase pooler (6543 / 5432) |
+| `NEXTAUTH_SECRET` | production, preview | 로컬 값과 다름 |
+| `NEXTAUTH_URL` | production | `https://aideals-ten.vercel.app` |
+| `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET` | production, preview | |
+| `CRON_SECRET` | production, preview | 로컬 값과 다름 |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | 전체 | |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | 전체 | ⚠️ 소멸된 인스턴스를 가리킴 — 삭제 또는 새 값으로 교체 필요 |
+
+### 로컬 개발 DB
+
+- Docker 컨테이너 `aideals-postgres` (postgres:16, 포트 5433, 볼륨 `aideals-pgdata`). 재부팅 후에는 `docker start aideals-postgres`
+- `.env`의 `DATABASE_URL`/`DIRECT_URL`이 이 컨테이너를 가리킨다. Supabase 접속 URL은 `.env`에 주석으로 남겨둠
+- 운영 DB에 스키마를 반영할 때는 Supabase URL을 지정해 `npx prisma migrate deploy`를 실행한다 (로컬 적용만으로 끝내지 않는다)
 
 ---
 
@@ -21,8 +53,10 @@
 | 구조화 로거 | `src/lib/logger.ts` |
 | 커밋 훅 (commit-msg + pre-commit) | `.git/hooks/` |
 | vitest 설치 | `package.json` devDependencies |
-| Upstash Redis 싱글턴 (없으면 캐시 스킵) | `src/lib/redis.ts` |
-| 캐시 유틸 (withCache, buildCacheKey, invalidateCache, CACHE_TTL) | `src/lib/cache.ts` |
+| Upstash Redis 싱글턴 (없으면 캐시 스킵, 재시도 1회) | `src/lib/redis.ts` |
+| 캐시 유틸 (withCache, buildCacheKey, invalidateCache, CACHE_TTL) + Redis 장애 시 30초 서킷 브레이커 | `src/lib/cache.ts` |
+| Supabase RLS 활성화 마이그레이션 (PostgREST 직접 접근 차단) | `prisma/migrations/20261020000000_enable_rls/` |
+| Vercel 함수 리전 (hnd1) + Cron 스케줄 | `vercel.json` |
 | Cloudinary 싱글턴 (없으면 업로드 비활성) | `src/lib/cloudinary.ts` |
 | Cloudinary URL 헬퍼 + next/image loader | `src/lib/image.ts` |
 | cloudinary SDK (v2.9) | `package.json` dependencies |
@@ -71,7 +105,9 @@
 | `GET /api/products/:id` | `src/app/api/products/[id]/route.ts` |
 | `GET /api/products/:id/links` (가격순 정렬) | `src/app/api/products/[id]/links/route.ts` |
 | `GET /api/search` (통합 검색: celeb/brand/product) | `src/app/api/search/route.ts` |
-| `POST /api/admin/upload` (Cloudinary 이미지 업로드) | `src/app/api/admin/upload/route.ts` |
+| `POST /api/admin/upload` (Cloudinary 이미지 업로드, CRON_SECRET 인증) | `src/app/api/admin/upload/route.ts` |
+| `GET /api/admin/images/search` (Unsplash 이미지 검색, 관리자 세션) | `src/app/api/admin/images/search/route.ts` |
+| `POST /api/admin/images/import` (외부 이미지 → Cloudinary 복사 + 출처 메타데이터) | `src/app/api/admin/images/import/route.ts` |
 | `GET/POST /api/auth/[...nextauth]` (NextAuth.js 인증) | `src/app/api/auth/[...nextauth]/route.ts` |
 
 ### 시드 데이터 (DB에 삽입 완료)
@@ -81,7 +117,7 @@
 | categories | 6개 | `prisma/seed-data/categories.ts` |
 | celeb_styles | 20개 | `prisma/seed-data/celebStyles.ts` |
 | similar_products | 13개 | `prisma/seed-data/similarProducts.ts` |
-| purchase_links | 21개 | `prisma/seed-data/purchaseLinks.ts` |
+| purchase_links | 21개 | `prisma/seed-data/purchaseLinks.ts` (URL은 플랫폼 "브랜드+상품명" 검색 결과로 자동 생성) |
 | seed runner | - | `prisma/seed.ts` (upsert 멱등 실행) |
 
 ### 컴포넌트
@@ -129,13 +165,16 @@
 |------|------|
 | useFilterStore (성별/색상/정렬) | `src/stores/useFilterStore.ts` |
 
-### 테스트 (144개 전체 통과, 16 파일, data 계층 mock + fixture 기반)
+### 테스트 (190개 전체 통과, 23 파일, data 계층 mock + fixture 기반)
 
 | 테스트 | 파일 | 건수 |
 |--------|------|------|
-| AppError / NotFoundError / ValidationError | `src/lib/api/errors.test.ts` | 10 |
+| AppError / NotFoundError / ValidationError | `src/lib/api/errors.test.ts` | 8 |
 | withErrorHandler 래퍼 | `src/lib/api/withErrorHandler.test.ts` | 6 |
-| parseQueryParams 파서 | `src/lib/api/parseQueryParams.test.ts` | 14 |
+| parseQueryParams 파서 | `src/lib/api/parseQueryParams.test.ts` | 16 |
+| 캐시 유틸 + 서킷 브레이커 | `src/lib/cache.test.ts` | 5 |
+| Cloudinary URL 헬퍼 / loader | `src/lib/image.test.ts` | 6 |
+| Unsplash 클라이언트 (SSRF 가드 포함) | `src/lib/unsplash.test.ts` | 7 |
 | GET /api/categories | `src/app/api/categories/route.test.ts` | 4 |
 | GET /api/categories/:id/styles | `src/app/api/categories/[id]/styles/route.test.ts` | 5 |
 | GET /api/styles | `src/app/api/styles/route.test.ts` | 7 |
@@ -145,10 +184,14 @@
 | GET /api/products/:id/links | `src/app/api/products/[id]/links/route.test.ts` | 6 |
 | GET /api/search | `src/app/api/search/route.test.ts` | 7 |
 | GET /api/cron/crawl | `src/app/api/cron/crawl/route.test.ts` | 5 |
-| 무신사 스크래퍼 파서 | `src/lib/scraper/musinsa.test.ts` | 17 |
-| 29CM 스크래퍼 파서 | `src/lib/scraper/cm29.test.ts` | 15 |
-| W컨셉 스크래퍼 파서 | `src/lib/scraper/wconcept.test.ts` | 15 |
-| 크롤링 엔진 | `src/lib/scraper/crawl.test.ts` | 19 |
+| POST /api/admin/upload | `src/app/api/admin/upload/route.test.ts` | 9 |
+| GET /api/admin/images/search | `src/app/api/admin/images/search/route.test.ts` | 5 |
+| POST /api/admin/images/import | `src/app/api/admin/images/import/route.test.ts` | 9 |
+| 무신사 스크래퍼 파서 | `src/lib/scraper/musinsa.test.ts` | 23 |
+| 29CM 스크래퍼 파서 | `src/lib/scraper/cm29.test.ts` | 14 |
+| W컨셉 스크래퍼 파서 | `src/lib/scraper/wconcept.test.ts` | 14 |
+| 크롤링 엔진 (검색 URL 스킵 포함) | `src/lib/scraper/crawl.test.ts` | 17 |
+| 스크래퍼 유틸 (parsePrice, isSearchPageUrl) | `src/lib/scraper/utils.test.ts` | 3 |
 
 ### 스크래퍼 / 크롤링
 
@@ -158,9 +201,9 @@
 | 29CM HTML 파서 (Cheerio 기반) | `src/lib/scraper/cm29.ts` |
 | W컨셉 HTML 파서 (Cheerio 기반) | `src/lib/scraper/wconcept.ts` |
 | 플랫폼 스크래퍼 레지스트리 | `src/lib/scraper/registry.ts` |
-| 공용 가격 파싱 유틸 (parsePrice) | `src/lib/scraper/utils.ts` |
+| 공용 유틸 (parsePrice, isSearchPageUrl — 검색 페이지 URL은 크롤링 제외) | `src/lib/scraper/utils.ts` |
 | 크롤링 엔진 (플랫폼 간 병렬, 내 순차 + 실패 추적) | `src/lib/scraper/crawl.ts` |
-| Vercel Cron 엔드포인트 (6시간 주기) | `src/app/api/cron/crawl/route.ts` |
+| Vercel Cron 엔드포인트 (매일 00:00 UTC) | `src/app/api/cron/crawl/route.ts` |
 | CLI 크롤링 스크립트 (`npm run crawl`) | `scripts/crawl-prices.ts` |
 | Vercel Cron 스케줄 설정 | `vercel.json` |
 | 스크래퍼 테스트 fixture (HTML 6개) | `src/lib/scraper/__fixtures__/` |
@@ -258,10 +301,15 @@ src/
 │       ├── auth/
 │       │   └── [...nextauth]/route.ts ← NextAuth.js 인증 핸들러
 │       ├── admin/
-│       │   └── upload/route.ts     ← Cloudinary 이미지 업로드
+│       │   ├── upload/route.ts     ← Cloudinary 이미지 업로드
+│       │   └── images/
+│       │       ├── search/route.ts ← Unsplash 이미지 검색
+│       │       └── import/route.ts ← 외부 이미지 → Cloudinary 복사
 │       └── cron/
 │           └── crawl/route.ts      (+route.test.ts)  ← Vercel Cron 크롤링
 ├── components/
+│   ├── admin/
+│   │   └── ImageSearchModal.client.tsx ← 관리자 Unsplash 검색 모달
 │   ├── ui/
 │   │   ├── Badge.tsx
 │   │   └── Skeleton.tsx
@@ -295,6 +343,7 @@ src/
 │   ├── logger.ts
 │   ├── cloudinary.ts                ← Cloudinary SDK 싱글턴
 │   ├── image.ts                     ← URL 변환 헬퍼 + next/image loader
+│   ├── unsplash.ts                  ← Unsplash API 클라이언트 (관리자 이미지 검색)
 │   ├── env.ts
 │   ├── envRules.ts
 │   └── scraper/
@@ -303,7 +352,7 @@ src/
 │       ├── wconcept.ts             (+wconcept.test.ts)
 │       ├── crawl.ts                (+crawl.test.ts)  ← 크롤링 엔진
 │       ├── registry.ts             ← 플랫폼 스크래퍼 레지스트리
-│       ├── utils.ts                ← 공용 parsePrice
+│       ├── utils.ts                ← parsePrice, isSearchPageUrl
 │       └── __fixtures__/           ← HTML fixture 6개
 ├── stores/
 │   └── useFilterStore.ts
@@ -350,17 +399,37 @@ src/
 | 관리자 권한 체크 (세션 role="admin" 검증) | ✅ 완료 | — |
 | Admin 데이터 계층 (CRUD + 캐시 무효화) | ✅ 완료 | — |
 | Server Actions 기반 관리자 CRUD | ✅ 완료 | — |
-| PWA 설정 (manifest + 서비스워커 + 아이콘 + 메타태그) | ✅ 완료 | — |
+| PWA 설정 (manifest + 서비스워커 + 아이콘 + 메타태그) | ✅ 완료 | `0845d5a` |
+| 관리자 Unsplash 이미지 검색 + 스타일 출처 메타데이터 (SSRF 가드) | ✅ 완료 | `02ed08b` |
+| DB 없이 빌드 가능 (홈 force-dynamic), viewport 분리, NextAuth trustHost | ✅ 완료 | `da25508` |
+| 상세 페이지 CloudinaryImage 통일 (외부 이미지 호스트 에러 방지) | ✅ 완료 | `da25508` |
+| 관리자 권한 부여 스크립트 (`npm run set-admin`) + 관리자 링크 admin 전용 노출 | ✅ 완료 | `290c51b` |
+| 시드 구매처 링크 404 해결 (플랫폼 검색 URL) + 크롤러 검색 URL 스킵 | ✅ 완료 | `acb8d4c` |
+| Redis 장애 시 응답 지연 방지 (재시도 1회 + 서킷 브레이커) | ✅ 완료 | `3a2b2da` |
+| 미설정 소셜 로그인 버튼 숨김 | ✅ 완료 | `281d314` |
+| Vercel 함수 리전 hnd1 이전 (응답 10초대 → 0.1~0.5초) | ✅ 완료 | `72b0c09` |
+| Supabase 전체 테이블 RLS 활성화 | ✅ 완료 | `adb9206` |
+| 운영 복구: Supabase restore, 누락 마이그레이션 2개 적용, Vercel 환경변수 4개 추가 | ✅ 완료 | — |
 
 ---
 
 ## 남은 작업
+
+### 운영 (사용자 조치 필요)
+
+- [ ] **운영 관리자 지정**: https://aideals-ten.vercel.app 에서 카카오 로그인 → Supabase URL로 `npm run set-admin -- --list` 후 `npm run set-admin -- <userId>`. KOE006 오류 시 카카오 콘솔에 Redirect URI `https://aideals-ten.vercel.app/api/auth/callback/kakao` 등록
+- [ ] **Vercel Upstash 변수 정리**: 소멸된 인스턴스를 가리키는 `UPSTASH_REDIS_REST_URL/TOKEN` 삭제 또는 새 Upstash 값으로 교체 (현재는 서킷 브레이커로 영향 최소화)
+- [ ] **실제 구매처 URL 등록**: 시드 링크는 검색 결과 페이지라 크롤러가 가격을 갱신하지 않음. 관리자 > 구매처에서 실제 상품 상세 URL로 교체해야 가격 크롤링이 동작
+- [ ] (선택) `UNSPLASH_ACCESS_KEY` 발급 — 관리자 이미지 검색
+- [ ] (선택) Google OAuth 키 발급 — 설정 시 로그인 버튼 자동 노출
+- [ ] Supabase 무료 플랜은 장기 미사용 시 프로젝트가 정지됨 — 운영 500 발생 시 먼저 프로젝트 상태 확인
 
 ### Phase 4
 
 - ~~NextAuth.js 인증 (카카오/구글 소셜 로그인)~~ ✅
 - ~~관리자 페이지~~ ✅
 - ~~PWA 설정~~ ✅
+- [ ] 북마크/찜, 가격 변동 알림, GitHub Actions CI/CD
 
 ### 기술 부채
 
@@ -399,20 +468,18 @@ export const GET = withErrorHandler(async (req: NextRequest, ctx: RouteContext) 
 
 ### 캐시 무효화 (`invalidateCache`) 사용 가이드
 
-`src/lib/cache.ts`에 `invalidateCache(pattern)` 함수가 정의되어 있으나, 현재 프로젝트는 GET 전용 API만 존재하여 **호출하는 곳이 없다.** TTL 만료에 의한 자연 갱신으로 충분한 상태.
+`src/lib/cache.ts`의 `invalidateCache(pattern)`은 현재 다음 위치에서 호출된다:
 
-다음 시점에 도입이 필요하다:
-
-| 시점 | 무효화 대상 | 예시 |
-|------|------------|------|
-| 크롤러가 가격 데이터 갱신 후 | 해당 상품 + 관련 목록 캐시 | `invalidateCache("products:id=${productId}*")` + `invalidateCache("styles:*")` |
-| 관리자 API로 스타일 CUD 시 | 스타일 목록 + 해당 카테고리 캐시 | `invalidateCache("styles:*")` + `invalidateCache("categories:id=${categoryId}:styles*")` |
-| 카테고리 구조 변경 시 | 카테고리 전체 캐시 | `invalidateCache("categories:*")` |
+| 호출 위치 | 무효화 대상 |
+|-----------|------------|
+| 관리자 CUD (`src/lib/data/admin.ts`) | 변경된 엔티티 관련 prefix (`categories:*`, `styles:*` 등) |
+| 크롤러 가격 갱신 (`src/lib/scraper/crawl.ts`) | `product:<id>*` + 가격 변경 시 `styles:*`, `style:*` |
 
 **원칙:**
 - DB에 CUD(Create/Update/Delete) 직후 관련 캐시를 즉시 무효화
 - 패턴은 최소 범위로 지정 (`"*"` 전체 삭제보다 영향받는 prefix만)
 - 연쇄 무효화 고려 (가격 변경 → 상품 캐시 + 목록 정렬 캐시 함께 무효화)
+- `withCache`는 Redis 장애 시 30초간 캐시를 건너뛰지만(서킷 브레이커), `invalidateCache`는 항상 시도한다 — 건너뛰면 Redis 복구 후 stale 캐시가 TTL 동안 남는다
 
 ### 절대 하면 안 되는 것
 
@@ -422,12 +489,15 @@ export const GET = withErrorHandler(async (req: NextRequest, ctx: RouteContext) 
 - `any` 타입 사용 금지
 - `"use client"` 남용 금지 (실제 상호작용 필요한 컴포넌트만)
 - 이미지 `<img>` 태그 직접 사용 금지 → `CloudinaryImage` 컴포넌트 사용 (`src/components/CloudinaryImage.tsx`)
+- 스키마 변경을 로컬 DB에만 적용하고 끝내기 금지 → 운영 Supabase에도 `prisma migrate deploy` (과거 마이그레이션 2개 누락으로 운영 로그인 불가 상태였음)
+- 새 테이블 추가 시 RLS 누락 금지 → 마이그레이션에 `ENABLE ROW LEVEL SECURITY` 포함
+- 클라이언트가 보낸 URL을 서버에서 그대로 fetch 금지 → 허용 호스트 검증 (`isUnsplashApiUrl` 참고)
 
 ---
 
 ## 참고 문서
 
 - `CLAUDE.md` — 코딩 컨벤션, 컴포넌트 패턴, API Route 패턴
-- `PROJECT_RULES.md` — 테스트 전략(§1), 환경변수(§2), 커밋 규칙(§3), 에러 코드(§4)
-- `aideals_design.md` — 프로젝트 전체 설계 문서
+- `PROJECT_RULES.md` — 테스트 전략(§1), 환경변수(§2), 커밋 규칙(§3), 응답 포맷(§4), 에러 코드(§5)
+- `ideals_design.md` — 프로젝트 전체 설계 문서
 - `prisma/schema.prisma` — DB 스키마 (타입 정의의 원본)

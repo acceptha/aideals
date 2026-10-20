@@ -82,6 +82,10 @@ aideals는 패션 비교 플랫폼이다. 사용자가 의류 카테고리를 �
 |--------|------|------|---------------|
 | GET | `/api/search` | 통합 검색 | `q` (검색어), `type` (celeb, brand, product) |
 
+### 관리자 / 운영
+
+`/api/admin/upload`, `/api/admin/images/search`, `/api/admin/images/import`, `/api/cron/crawl` — 인증 방식과 파라미터는 `docs/api.md` 참조. 관리자 CRUD는 Server Actions(`src/app/admin/actions.ts`)로 처리한다.
+
 ---
 
 ## 주요 컴포넌트 명세
